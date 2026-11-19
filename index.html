@@ -156,6 +156,18 @@
       color: var(--text-dim);
     }
 
+    .version-badge {
+      font-family: monospace;
+      font-size: 0.74rem;
+      font-weight: 700;
+      color: #16110b;
+      background: linear-gradient(180deg, var(--gold-bright) 0%, var(--gold) 100%);
+      padding: 2px 7px;
+      border-radius: 999px;
+      letter-spacing: 0.5px;
+      box-shadow: 0 1px 6px rgba(0, 0, 0, 0.5);
+    }
+
     .menu-nav {
       display: flex;
       align-items: center;
@@ -952,6 +964,7 @@
   <header class="topbar">
     <div class="brand">
       <span class="brand-title"><span class="holly-accent">🎄 </span>CONCERT GRAND<span class="holly-accent"> ★</span></span>
+      <span class="version-badge" id="app-version-badge" title="Application Version">v1.0.0</span>
       <span class="brand-sub">88-Key Physical Modeling Piano</span>
     </div>
 
@@ -1013,6 +1026,10 @@
           <div class="field-row">
             <label>Camera Preset</label>
             <button class="btn-sm" id="reset-view-btn">Reset Full 88-Key View</button>
+          </div>
+          <div class="field-row" id="desktop-source-row" style="display: none;">
+            <label>App Source (Ctrl+Shift+G)</label>
+            <button class="btn-sm" id="toggle-source-btn" title="Switch between Embedded Offline Build and Live GitHub Pages">Offline Embedded</button>
           </div>
         </div>
       </div>
@@ -5183,6 +5200,30 @@
     }
 
     applyInitialSettingsToUI();
+
+    // =========================================================================
+    // 13B. DESKTOP SHELL (WEBVIEW2) INTEGRATION & OPTION 1B HYBRID SOURCE SWITCHER
+    // =========================================================================
+    const APP_VERSION = 'v1.0.0';
+    const versionBadgeEl = document.getElementById('app-version-badge');
+    if (versionBadgeEl) versionBadgeEl.textContent = APP_VERSION;
+
+    if (window.chrome && window.chrome.webview) {
+      const sourceRow = document.getElementById('desktop-source-row');
+      const sourceBtn = document.getElementById('toggle-source-btn');
+      if (sourceRow && sourceBtn) {
+        sourceRow.style.display = 'flex';
+        const isLiveGitHub = window.location.hostname.includes('github.io');
+        sourceBtn.textContent = isLiveGitHub ? 'Live GitHub Pages' : 'Offline Embedded';
+        sourceBtn.classList.toggle('active', isLiveGitHub);
+        sourceBtn.addEventListener('click', () => {
+          window.chrome.webview.postMessage('toggle-source');
+        });
+      }
+      // In the native WebView2 shell (--autoplay-policy=no-user-gesture-required),
+      // start the AudioWorklet engine immediately on launch!
+      ensureAudioStarted();
+    }
 
     window.addEventListener('resize', () => {
       const w = container.clientWidth;
