@@ -1,3 +1,5 @@
 desktop-shell/bin/
 desktop-shell/obj/
 dist/
+ConcertGrandPiano-*-Standalone.exe
+dist-standalone/

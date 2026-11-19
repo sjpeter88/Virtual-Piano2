@@ -11,16 +11,27 @@ namespace ConcertGrandShell;
 
 internal static class Program
 {
-    public const string AppVersion = "v1.0.0";
+    public const string AppVersion = "v1.1.0";
     public const string EmbeddedOriginUrl = "https://concertgrand.app/index.html";
     public const string LiveGitHubUrl = "https://sjpeter88.github.io/Virtual-Piano2/";
 
     [STAThread]
-    static void Main()
+    static void Main(string[] args)
     {
         ApplicationConfiguration.Initialize();
-        Application.Run(new MainForm());
+        bool kiosk = args.Any(a => a.Equals("--kiosk", StringComparison.OrdinalIgnoreCase));
+        Application.Run(new MainForm(kiosk));
     }
+}
+
+/// <summary>Remembered window position, size and maximized state (Option 3A).</summary>
+public sealed class WindowState_
+{
+    public int Left { get; set; }
+    public int Top { get; set; }
+    public int Width { get; set; }
+    public int Height { get; set; }
+    public bool Maximized { get; set; }
 }
 
 public sealed class MainForm : Form
@@ -32,8 +43,15 @@ public sealed class MainForm : Form
     private FormBorderStyle _prevBorderStyle;
     private Rectangle _prevBounds;
 
-    public MainForm()
+    private readonly bool _kiosk;
+
+    private static string AppDataDir => Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ConcertGrandPiano");
+    private static string WindowStatePath => Path.Combine(AppDataDir, "window-state.json");
+
+    public MainForm(bool kiosk = false)
     {
+        _kiosk = kiosk;
         Text = $"Concert Grand 3D Virtual Piano {Program.AppVersion} — Offline Embedded (Press F11 Fullscreen · Ctrl+Shift+G Switch Source)";
         Width = 1480;
         Height = 880;
@@ -41,7 +59,11 @@ public sealed class MainForm : Form
         StartPosition = FormStartPosition.CenterScreen;
         BackColor = Color.FromArgb(14, 11, 9);
         KeyPreview = true;
-        Icon = CreatePianoAppIcon();
+        try { Icon = Icon.ExtractAssociatedIcon(Environment.ProcessPath ?? Application.ExecutablePath) ?? CreatePianoAppIcon(); }
+        catch { Icon = CreatePianoAppIcon(); }
+
+        RestoreWindowState();
+        FormClosing += (_, _) => SaveWindowState();
 
         _webView = new WebView2
         {
@@ -50,8 +72,44 @@ public sealed class MainForm : Form
         };
         Controls.Add(_webView);
 
-        Load += async (_, _) => await InitializeWebViewAsync();
+        Load += async (_, _) =>
+        {
+            if (_kiosk) ToggleFullscreen();
+            await InitializeWebViewAsync();
+        };
         KeyDown += OnFormKeyDown;
+    }
+
+    private void RestoreWindowState()
+    {
+        try
+        {
+            if (!File.Exists(WindowStatePath)) return;
+            var st = System.Text.Json.JsonSerializer.Deserialize<WindowState_>(File.ReadAllText(WindowStatePath));
+            if (st == null) return;
+            var bounds = new Rectangle(st.Left, st.Top, Math.Max(st.Width, MinimumSize.Width), Math.Max(st.Height, MinimumSize.Height));
+            // Only restore if the saved rectangle is still visible on a connected monitor
+            if (!Screen.AllScreens.Any(s => s.WorkingArea.IntersectsWith(bounds))) return;
+            StartPosition = FormStartPosition.Manual;
+            Bounds = bounds;
+            if (st.Maximized) WindowState = FormWindowState.Maximized;
+        }
+        catch { /* corrupt or unreadable state file: fall back to defaults */ }
+    }
+
+    private void SaveWindowState()
+    {
+        if (_kiosk) return;
+        try
+        {
+            // While fullscreen, save the pre-fullscreen window rather than the screen-sized one
+            bool max = _isFullscreen ? _prevWindowState == FormWindowState.Maximized : WindowState == FormWindowState.Maximized;
+            Rectangle b = _isFullscreen ? _prevBounds : (WindowState == FormWindowState.Normal ? Bounds : RestoreBounds);
+            Directory.CreateDirectory(AppDataDir);
+            File.WriteAllText(WindowStatePath, System.Text.Json.JsonSerializer.Serialize(
+                new WindowState_ { Left = b.Left, Top = b.Top, Width = b.Width, Height = b.Height, Maximized = max }));
+        }
+        catch { /* non-fatal */ }
     }
 
     private void OnFormKeyDown(object? sender, KeyEventArgs e)
@@ -182,6 +240,56 @@ public sealed class MainForm : Form
                 {
                     ToggleFullscreen();
                 }
+                else if (msg == "kiosk-minimize")
+                {
+                    WindowState = FormWindowState.Minimized;
+                }
+                else if (msg == "kiosk-windowed")
+                {
+                    if (_isFullscreen) ToggleFullscreen();
+                }
+                else if (msg == "kiosk-exit")
+                {
+                    Close();
+                }
+            };
+
+            // Locked desktop chrome (Option 4C): no swipe back/forward, no navigating away to other sites.
+            // DevTools (F12 / Ctrl+Shift+I) intentionally stay available.
+            core.Settings.IsSwipeNavigationEnabled = false;
+            core.NavigationStarting += (_, args) =>
+            {
+                if (!Uri.TryCreate(args.Uri, UriKind.Absolute, out var u)) { args.Cancel = true; return; }
+                bool allowed = u.Host.Equals("concertgrand.app", StringComparison.OrdinalIgnoreCase)
+                            || u.Host.Equals("sjpeter88.github.io", StringComparison.OrdinalIgnoreCase)
+                            || u.Scheme is "blob" or "data" or "about";
+                if (!allowed) args.Cancel = true;
+            };
+            core.NewWindowRequested += (_, args) => args.Handled = true; // no pop-up browser windows
+
+            // Native Windows "Save As" dialog for .wav recordings (Option 4E) and any other page download
+            core.DownloadStarting += (_, args) =>
+            {
+                string suggested = Path.GetFileName(args.ResultFilePath);
+                using var dlg = new SaveFileDialog
+                {
+                    Title = "Save recording",
+                    FileName = suggested,
+                    Filter = suggested.EndsWith(".wav", StringComparison.OrdinalIgnoreCase)
+                        ? "WAV audio (*.wav)|*.wav|All files (*.*)|*.*"
+                        : "All files (*.*)|*.*",
+                    InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyMusic),
+                    OverwritePrompt = true
+                };
+                if (dlg.ShowDialog(this) == DialogResult.OK)
+                {
+                    args.ResultFilePath = dlg.FileName;
+                    args.Handled = true; // suppress WebView2's default download bubble
+                }
+                else
+                {
+                    args.Cancel = true;
+                }
             };
 
             // Intercept https://concertgrand.app/* and serve embedded resources directly from the single .exe binary
@@ -192,16 +300,28 @@ public sealed class MainForm : Form
             core.NavigationCompleted += (_, _) =>
             {
                 core.ExecuteScriptAsync(@"
-                    window.addEventListener('keydown', (e) => {
-                        if (e.key === 'F11') {
+                    if (!window.__shellHooked) {
+                      window.__shellHooked = true;
+                      window.addEventListener('keydown', (e) => {
+                        if (e.key === 'F11' || (e.altKey && e.key === 'Enter')) {
                             e.preventDefault();
                             window.chrome.webview.postMessage('toggle-fullscreen');
                         } else if (e.ctrlKey && e.shiftKey && (e.key === 'G' || e.key === 'g')) {
                             e.preventDefault();
                             window.chrome.webview.postMessage('toggle-source');
+                        } else if (e.altKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+                            e.preventDefault(); // block browser back/forward
+                        } else if (e.key === 'BrowserBack' || e.key === 'BrowserForward') {
+                            e.preventDefault();
                         }
-                    });
+                      }, true);
+                      // Block mouse back/forward side buttons
+                      window.addEventListener('mouseup', (e) => {
+                        if (e.button === 3 || e.button === 4) e.preventDefault();
+                      }, true);
+                    }
                 ");
+                if (_kiosk) InjectKioskPill(core);
             };
 
             core.Navigate(Program.EmbeddedOriginUrl);
@@ -215,6 +335,28 @@ public sealed class MainForm : Form
                 MessageBoxIcon.Error
             );
         }
+    }
+
+    // Kiosk mode (Option 3B): floating top-right pill with Minimize / Windowed / Exit
+    private static void InjectKioskPill(CoreWebView2 core)
+    {
+        core.ExecuteScriptAsync(@"
+            if (!document.getElementById('kiosk-pill')) {
+              const pill = document.createElement('div');
+              pill.id = 'kiosk-pill';
+              pill.style.cssText = 'position:fixed;top:8px;right:10px;z-index:99999;display:flex;gap:4px;padding:3px;border-radius:14px;background:rgba(20,14,12,0.72);border:1px solid rgba(216,181,120,0.5);opacity:0.35;transition:opacity .2s;font:12px sans-serif;';
+              pill.onmouseenter = () => pill.style.opacity = 1;
+              pill.onmouseleave = () => pill.style.opacity = 0.35;
+              [['–','kiosk-minimize','Minimize'],['□','kiosk-windowed','Windowed'],['✕','kiosk-exit','Exit']].forEach(([t,m,tip]) => {
+                const b = document.createElement('button');
+                b.textContent = t; b.title = tip;
+                b.style.cssText = 'width:24px;height:22px;border:0;border-radius:11px;background:transparent;color:#f5f0e4;cursor:pointer;';
+                b.onclick = () => window.chrome.webview.postMessage(m);
+                pill.appendChild(b);
+              });
+              document.body.appendChild(pill);
+            }
+        ");
     }
 
     private void OnWebResourceRequested(object? sender, CoreWebView2WebResourceRequestedEventArgs e)

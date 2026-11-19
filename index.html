@@ -194,6 +194,13 @@
       white-space: nowrap;
     }
 
+    .menu-btn.recording {
+      color: #fff;
+      background: rgba(190, 30, 40, 0.85);
+      border-color: #ff6b6b;
+      animation: rec-pulse 1.1s ease-in-out infinite;
+    }
+    @keyframes rec-pulse { 50% { opacity: 0.6; } }
     .menu-btn:hover {
       background: rgba(216, 181, 120, 0.22);
       border-color: var(--gold);
@@ -964,7 +971,7 @@
   <header class="topbar">
     <div class="brand">
       <span class="brand-title"><span class="holly-accent">🎄 </span>CONCERT GRAND<span class="holly-accent"> ★</span></span>
-      <span class="version-badge" id="app-version-badge" title="Application Version">v1.0.0</span>
+      <span class="version-badge" id="app-version-badge" title="Application Version">v1.1.0</span>
       <span class="brand-sub">88-Key Physical Modeling Piano</span>
     </div>
 
@@ -1090,6 +1097,8 @@
 
       <!-- BUILT-IN MANUAL BUTTON -->
       <button class="menu-btn" id="open-manual-btn">Manual / Help</button>
+      <!-- NATIVE .WAV RECORDER (Option 4E) -->
+      <button class="menu-btn" id="record-btn" title="Record your playing (or a self-playing song) and save it as a .wav file">⏺ Record</button>
     </nav>
 
     <div class="quick-bar">
@@ -5204,9 +5213,119 @@
     // =========================================================================
     // 13B. DESKTOP SHELL (WEBVIEW2) INTEGRATION & OPTION 1B HYBRID SOURCE SWITCHER
     // =========================================================================
-    const APP_VERSION = 'v1.0.0';
+    const APP_VERSION = 'v1.1.0';
     const versionBadgeEl = document.getElementById('app-version-badge');
     if (versionBadgeEl) versionBadgeEl.textContent = APP_VERSION;
+
+    // -------------------------------------------------------------------------
+    // 13C. .WAV AUDIO RECORDER (Option 4E) — taps the piano AudioWorklet output
+    //      through a tiny capture worklet and encodes 16-bit stereo PCM WAV.
+    //      (Metronome clicks are not included in the recording.)
+    // -------------------------------------------------------------------------
+    const RECORDER_WORKLET_CODE = `
+      class RecorderTap extends AudioWorkletProcessor {
+        constructor() { super(); this.on = false; this.port.onmessage = (e) => { this.on = !!e.data.on; }; }
+        process(inputs) {
+          const inp = inputs[0];
+          if (this.on && inp && inp.length) {
+            const l = inp[0], r = inp[1] || inp[0];
+            this.port.postMessage({ l: l.slice(), r: r.slice() });
+          }
+          return true;
+        }
+      }
+      registerProcessor('recorder-tap', RecorderTap);
+    `;
+    const recordBtn = document.getElementById('record-btn');
+    let recTapNode = null;
+    let recChunksL = [];
+    let recChunksR = [];
+    let recSamples = 0;
+    let isRecording = false;
+    let recTimer = null;
+    let recStartMs = 0;
+
+    function encodeWav(chunksL, chunksR, totalSamples, sampleRate) {
+      const dataBytes = totalSamples * 4;
+      const buf = new ArrayBuffer(44 + dataBytes);
+      const v = new DataView(buf);
+      const wstr = (o, s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+      wstr(0, 'RIFF'); v.setUint32(4, 36 + dataBytes, true); wstr(8, 'WAVE');
+      wstr(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 2, true);
+      v.setUint32(24, sampleRate, true); v.setUint32(28, sampleRate * 4, true);
+      v.setUint16(32, 4, true); v.setUint16(34, 16, true);
+      wstr(36, 'data'); v.setUint32(40, dataBytes, true);
+      let off = 44;
+      const clamp = (x) => { x = Math.max(-1, Math.min(1, x)); return x < 0 ? x * 0x8000 : x * 0x7fff; };
+      for (let c = 0; c < chunksL.length; c++) {
+        const l = chunksL[c], r = chunksR[c];
+        for (let i = 0; i < l.length; i++) {
+          v.setInt16(off, clamp(l[i]), true); v.setInt16(off + 2, clamp(r[i]), true);
+          off += 4;
+        }
+      }
+      return new Blob([buf], { type: 'audio/wav' });
+    }
+
+    function saveWavBlob(blob) {
+      const stamp = new Date().toISOString().replace(/[:T]/g, '-').slice(0, 19);
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `ConcertGrand-${stamp}.wav`;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 5000);
+    }
+
+    async function startRecording() {
+      await ensureAudioStarted();
+      if (!audioCtx || !workletNode) return;
+      if (!recTapNode) {
+        const blob = new Blob([RECORDER_WORKLET_CODE], { type: 'application/javascript' });
+        const url = URL.createObjectURL(blob);
+        await audioCtx.audioWorklet.addModule(url);
+        URL.revokeObjectURL(url);
+        recTapNode = new AudioWorkletNode(audioCtx, 'recorder-tap', {
+          numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [2]
+        });
+        recTapNode.port.onmessage = (e) => {
+          if (!isRecording) return;
+          recChunksL.push(e.data.l); recChunksR.push(e.data.r);
+          recSamples += e.data.l.length;
+        };
+        workletNode.connect(recTapNode);
+        recTapNode.connect(audioCtx.destination); // outputs silence; keeps the tap pulled by the graph
+      }
+      recChunksL = []; recChunksR = []; recSamples = 0;
+      isRecording = true;
+      recTapNode.port.postMessage({ on: true });
+      recStartMs = performance.now();
+      recordBtn.classList.add('recording');
+      recTimer = setInterval(() => {
+        const s = Math.floor((performance.now() - recStartMs) / 1000);
+        recordBtn.textContent = `⏹ ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+      }, 250);
+      recordBtn.textContent = '⏹ 0:00';
+    }
+
+    function stopRecording() {
+      isRecording = false;
+      clearInterval(recTimer);
+      if (recTapNode) recTapNode.port.postMessage({ on: false });
+      recordBtn.classList.remove('recording');
+      recordBtn.textContent = '⏺ Record';
+      if (recSamples > 0) {
+        saveWavBlob(encodeWav(recChunksL, recChunksR, recSamples, audioCtx.sampleRate));
+      }
+      recChunksL = []; recChunksR = []; recSamples = 0;
+    }
+
+    if (recordBtn) {
+      recordBtn.addEventListener('click', () => {
+        if (isRecording) stopRecording(); else startRecording();
+        recordBtn.blur();
+      });
+    }
 
     if (window.chrome && window.chrome.webview) {
       const sourceRow = document.getElementById('desktop-source-row');

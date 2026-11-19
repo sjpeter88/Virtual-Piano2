@@ -18,7 +18,10 @@ This repository (`d:\AntiGravityDesktop\Virtual-Piano2`) contains the **Concert 
 - `lib/three.module.min.js` — Local Three.js r160 ES module.
 - `desktop-shell/ConcertGrandShell.csproj` — .NET 10 WinForms + WebView2 project that embeds `..\index.html` and `..\lib\three.module.min.js` directly into the `.exe` binary as `EmbeddedResource` items.
 - `desktop-shell/Program.cs` — Single-file WebView2 host (`MainForm`). Serves embedded resources via `https://concertgrand.app/index.html`, enables zero-click audio autoplay (`--autoplay-policy=no-user-gesture-required`), auto-grants MIDI permissions, supports `F11` / `Alt+Enter` fullscreen, and supports **Option 1B** (`Ctrl+Shift+G` or View menu button) to toggle between the embedded offline build and `https://sjpeter88.github.io/Virtual-Piano2/`.
-- `ConcertGrandPiano-v1.0.0.exe` — Published single-file Windows executable in the project root.
+- `desktop-shell/piano.ico` — Multi-resolution (16–256 px) app icon, wired in via `<ApplicationIcon>`; also used as the window/taskbar icon at runtime.
+- `ConcertGrandPiano-v1.1.0.exe` — Framework-dependent single-file executable (~2 MB, needs .NET 10 Desktop Runtime) in the project root.
+- `ConcertGrandPiano-v1.1.0-Standalone.exe` — Self-contained build (~118 MB, no .NET needed). **Git-ignored** because it exceeds GitHub's 100 MB file limit; rebuild locally.
+- v1.1.0 shell features: window size/position/maximized state remembered in `%LOCALAPPDATA%\ConcertGrandPiano\window-state.json`; browser back/forward and off-site navigation blocked (DevTools F12 still available); `--kiosk` launch argument for borderless fullscreen with a floating Minimize/Windowed/Exit pill; native Save As dialog for downloads; **Record** button (top bar) captures the piano output to a 16-bit stereo `.wav` (metronome clicks excluded).
 
 ## 3. Common Commands
 
@@ -35,7 +38,11 @@ Then open `http://localhost:8080`.
 dotnet publish desktop-shell/ConcertGrandShell.csproj -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true -p:DebugType=None -p:DebugSymbols=false -o dist
 Copy-Item dist\ConcertGrandPiano-v*.exe .\ -Force
 ```
-*(To build a ~70 MB self-contained `.exe` that includes the .NET runtime for PCs without .NET 10 installed, change `--self-contained false` to `--self-contained true`.)*
+Self-contained build (~118 MB, includes the .NET runtime; use a separate output folder and rename):
+```powershell
+dotnet publish desktop-shell/ConcertGrandShell.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:DebugType=None -p:DebugSymbols=false -o dist-standalone
+Copy-Item dist-standalone\ConcertGrandPiano-vX.Y.Z.exe .\ConcertGrandPiano-vX.Y.Z-Standalone.exe -Force
+```
 
 ### Push Updates to GitHub & GitHub Pages
 - **Repository:** `https://github.com/sjpeter88/Virtual-Piano2`
