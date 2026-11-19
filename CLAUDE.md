@@ -1,0 +1,47 @@
+# CLAUDE.md — Project Architecture & Build Guide
+
+This repository (`d:\AntiGravityDesktop\Virtual-Piano2`) contains the **Concert Grand 3D Virtual Piano** web application and its **.NET 10 + WebView2** single-file Windows desktop executable wrapper.
+
+## 1. Key Constraints & Design Rules
+- **No Web Build Tools or External Runtime Fetches**: The web app must remain 100% self-contained in a single [index.html](index.html) file (inline CSS, HTML, and ES module JavaScript) loading Three.js locally from [lib/three.module.min.js](lib/three.module.min.js). Never add external CDN URLs (`http://` or `https://`) for scripts, fonts, textures, or audio samples—everything is synthesized and procedurally generated offline.
+- **Physical-Modeling AudioWorklet**: All piano audio is synthesized inside `WORKLET_PROCESSOR_CODE` (loaded via an inline `Blob` URL into `audioCtx.audioWorklet.addModule`).
+- **Dual Visual Themes (`Christmas` & `Classic Studio`)**: Keep both themes intact and switchable via `toggleVisualTheme()`. In `Classic Studio` mode, `christmasRoomGroup.visible` and `pianoDecorGroup.visible` are `false`, restoring the original dark studio background and camera angle.
+- **Version Numbering Rule**:
+  - The current version is displayed in the top-left brand header (`#app-version-badge` and `APP_VERSION` in `index.html`).
+  - When building a new Windows executable release, increment the version (e.g., `v1.0.1` or `v1.1.0`) in three places so they stay in sync:
+    1. `index.html`: `#app-version-badge` HTML text and `const APP_VERSION = 'vX.Y.Z';`
+    2. `desktop-shell/Program.cs`: `public const string AppVersion = "vX.Y.Z";`
+    3. `desktop-shell/ConcertGrandShell.csproj`: `<AssemblyName>ConcertGrandPiano-vX.Y.Z</AssemblyName>` and `<Version>X.Y.Z</Version>` (so the output executable has the version right before `.exe`, e.g., `ConcertGrandPiano-v1.1.0.exe`).
+
+## 2. File Structure
+- `index.html` — Complete 3D Virtual Piano application (14 numbered code sections: settings, 26 public-domain songs with two-hand note data & synchronized lyrics, AudioWorklet processor, Three.js 88-key grand piano + 3D Christmas living room, mouse/multi-touch/DAW keyboard/Web MIDI input, chords/scales/metronome, and WebView2 desktop bridge).
+- `lib/three.module.min.js` — Local Three.js r160 ES module.
+- `desktop-shell/ConcertGrandShell.csproj` — .NET 10 WinForms + WebView2 project that embeds `..\index.html` and `..\lib\three.module.min.js` directly into the `.exe` binary as `EmbeddedResource` items.
+- `desktop-shell/Program.cs` — Single-file WebView2 host (`MainForm`). Serves embedded resources via `https://concertgrand.app/index.html`, enables zero-click audio autoplay (`--autoplay-policy=no-user-gesture-required`), auto-grants MIDI permissions, supports `F11` / `Alt+Enter` fullscreen, and supports **Option 1B** (`Ctrl+Shift+G` or View menu button) to toggle between the embedded offline build and `https://sjpeter88.github.io/Virtual-Piano2/`.
+- `ConcertGrandPiano-v1.0.0.exe` — Published single-file Windows executable in the project root.
+
+## 3. Common Commands
+
+### Run Local Static Web Server
+*(Note: A background `python -m http.server 8080` may already be running on port 8080.)*
+```powershell
+python -m http.server 8080
+```
+Then open `http://localhost:8080`.
+
+### Build the Single-File Windows `.exe`
+*(Make sure any running `ConcertGrandPiano-vX.Y.Z.exe` window is closed before overwriting the `.exe`.)*
+```powershell
+dotnet publish desktop-shell/ConcertGrandShell.csproj -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true -p:DebugType=None -p:DebugSymbols=false -o dist
+Copy-Item dist\ConcertGrandPiano-v*.exe .\ -Force
+```
+*(To build a ~70 MB self-contained `.exe` that includes the .NET runtime for PCs without .NET 10 installed, change `--self-contained false` to `--self-contained true`.)*
+
+### Push Updates to GitHub & GitHub Pages
+- **Repository:** `https://github.com/sjpeter88/Virtual-Piano2`
+- **Live GitHub Pages URL:** `https://sjpeter88.github.io/Virtual-Piano2/`
+```powershell
+git add index.html desktop-shell/ CLAUDE.md README.md
+git commit -m "Describe changes"
+git push origin main
+```
