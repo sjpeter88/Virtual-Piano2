@@ -199,16 +199,33 @@
     .brand { flex-shrink: 0; }
     @media (max-width: 1500px) {
       .brand-sub { display: none; }
+      .topbar { padding: 0 12px; gap: 6px; }
+      .menu-nav, .quick-bar { gap: 6px; }
+      .menu-btn { padding: 6px 9px; font-size: 0.78rem; }
+      .brand-word { padding: 0 4px; }
+      .holly-ico { width: 30px; height: 26px; }
+      .brand { gap: 8px; }
+    }
+    @media (max-width: 1300px) {
+      .brand-title { font-size: 1.12rem; letter-spacing: 1px; }
+      .menu-btn { padding: 6px 7px; font-size: 0.76rem; }
+      .menu-nav, .quick-bar { gap: 4px; }
     }
     @media (max-width: 1180px) {
-      .topbar { padding: 0 10px; }
-      .brand-title { font-size: 1.1rem; letter-spacing: 1px; }
-      .menu-nav { gap: 5px; }
-      .menu-btn { padding: 6px 9px; font-size: 0.78rem; }
+      .holly-ico { display: none !important; }
+      .menu-btn { padding: 6px 6px; }
+    }
+    @media (max-width: 1100px) {
+      .version-badge { display: none; }
+    }
+    @media (max-width: 1020px) {
+      .topbar { padding: 0 8px; gap: 4px; }
+      .brand-title { font-size: 1rem; }
+      .menu-btn { padding: 6px 4px; font-size: 0.72rem; }
+      .menu-nav, .quick-bar { gap: 3px; }
     }
     @media (max-width: 1020px) {
       .rec-label { display: none; }
-      .brand-title .holly-accent { display: none; }
     }
     .menu-btn.recording {
       color: #fff;
@@ -983,6 +1000,158 @@
       color: var(--gold-bright);
       font-weight: 600;
     }
+
+    /* =========================================================================
+       CHRISTMAS UI POLISH (mock-up styling): crimson & pine-green rounded buttons with gold edges,
+       holly-flanked gold title, chord tray, and a gold/red/green progress strip with a gold knob.
+       ========================================================================= */
+    .holly-ico { width: 38px; height: 32px; vertical-align: -8px; filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.7)); }
+    .holly-ico:last-child { transform: scaleX(-1); }
+    .brand-word { padding: 0 8px; }
+
+    body.theme-christmas .brand-title .brand-word {
+      background: linear-gradient(180deg, #fff1c8 0%, #ebc272 42%, #b9812f 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.75));
+    }
+
+    body.theme-christmas .menu-btn {
+      background: linear-gradient(180deg, #b8202c 0%, #7c1019 100%);
+      border: 1px solid rgba(240, 196, 118, 0.78);
+      color: #fff1e2;
+      border-radius: 9px;
+      font-weight: 600;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28), 0 2px 7px rgba(0, 0, 0, 0.55);
+    }
+    body.theme-christmas .menu-btn:hover {
+      background: linear-gradient(180deg, #d12a37 0%, #931622 100%);
+      border-color: #ffe19c;
+    }
+    body.theme-christmas .menu-btn.active,
+    body.theme-christmas #open-manual-btn {
+      background: linear-gradient(180deg, #2a8a52 0%, #14633a 100%);
+      border-color: rgba(240, 196, 118, 0.78);
+      color: #f3ffe9;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 2px 7px rgba(0, 0, 0, 0.55);
+    }
+    body.theme-christmas #open-manual-btn:hover,
+    body.theme-christmas .menu-btn.active:hover {
+      background: linear-gradient(180deg, #34a062 0%, #1a7544 100%);
+    }
+    body.theme-christmas #sustain-btn {
+      background: linear-gradient(180deg, #3a3330 0%, #1c1715 100%);
+      color: #d9cdbf;
+      border-color: rgba(200, 170, 120, 0.5);
+    }
+    body.theme-christmas #sustain-btn.active {
+      background: linear-gradient(180deg, #e9c46f 0%, #b98a2c 100%);
+      color: #2a1a05;
+    }
+    body.theme-christmas #record-btn {
+      background: linear-gradient(180deg, #3b1613 0%, #1f0c0b 100%);
+      color: #ffe6d8;
+    }
+    body.theme-christmas #record-btn.recording {
+      background: linear-gradient(180deg, #e03545 0%, #a0121f 100%);
+      color: #fff;
+      border-color: #ff9a9a;
+    }
+
+    /* Practice ribbon floats over the scene; groups become dark translucent trays */
+    body.theme-christmas .practicebar {
+      background: transparent;
+      border-bottom: none;
+      backdrop-filter: none;
+      pointer-events: none;
+    }
+    body.theme-christmas .practicebar > .ctrl-group {
+      pointer-events: auto;
+      background: linear-gradient(180deg, rgba(48, 18, 14, 0.86) 0%, rgba(24, 10, 9, 0.86) 100%);
+      border: 1px solid rgba(240, 196, 118, 0.42);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+    }
+    body.theme-christmas .practicebar > .ctrl-group:first-child {
+      margin-left: -18px;
+      padding: 4px 30px 4px 18px;
+      border-left: none;
+      border-radius: 0;
+      clip-path: polygon(0 0, 100% 0, calc(100% - 16px) 100%, 0 100%);
+    }
+
+    body.theme-christmas .chord-btn {
+      min-width: 32px;
+      padding: 5px 10px;
+      border-radius: 8px;
+      font-weight: 700;
+      border: 1px solid rgba(240, 196, 118, 0.72);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 1px 4px rgba(0, 0, 0, 0.55);
+    }
+    body.theme-christmas .chord-btn[data-chord="C"],
+    body.theme-christmas .chord-btn[data-chord="G"],
+    body.theme-christmas .chord-btn[data-chord="Dm"],
+    body.theme-christmas .chord-btn[data-chord="E7"] {
+      background: linear-gradient(180deg, #b8202c 0%, #7c1019 100%);
+      color: #fff0e6;
+    }
+    body.theme-christmas .chord-btn[data-chord="D"],
+    body.theme-christmas .chord-btn[data-chord="Am"],
+    body.theme-christmas .chord-btn[data-chord="Em"],
+    body.theme-christmas .chord-btn[data-chord="F"] {
+      background: linear-gradient(180deg, #2a8a52 0%, #14633a 100%);
+      color: #effff0;
+    }
+    body.theme-christmas .chord-btn.playing {
+      background: linear-gradient(180deg, #ffe7a6 0%, #dba844 100%);
+      color: #2a1305;
+      border-color: #fff3c8;
+      box-shadow: 0 0 14px rgba(255, 214, 120, 0.85);
+    }
+
+    /* Bottom transport bar */
+    body.theme-christmas .bottom-stack { border-top: 1px solid rgba(240, 196, 118, 0.55); }
+    body.theme-christmas .player-controls .btn-sm {
+      background: linear-gradient(180deg, #3c1a15 0%, #230f0d 100%);
+      border: 1px solid rgba(240, 196, 118, 0.55);
+      color: #ffe6ae;
+      border-radius: 8px;
+      padding: 5px 11px;
+      font-size: 0.82rem;
+      font-weight: 600;
+    }
+    body.theme-christmas .player-controls .btn-sm:hover { border-color: #ffe19c; background: linear-gradient(180deg, #4d231c 0%, #2c1411 100%); }
+    body.theme-christmas .player-controls .btn-sm.active {
+      background: linear-gradient(180deg, #ecc874 0%, #b98a2c 100%);
+      color: #2a1a05;
+    }
+    body.theme-christmas .progress-track {
+      height: 12px;
+      overflow: visible;
+      background: linear-gradient(90deg, rgba(223, 179, 101, 0.30) 0%, rgba(201, 42, 53, 0.30) 40%, rgba(36, 138, 80, 0.30) 72%, rgba(36, 138, 80, 0.30) 100%);
+      border: 1px solid rgba(240, 196, 118, 0.5);
+    }
+    body.theme-christmas .progress-fill {
+      background: linear-gradient(90deg, #dfb365 0%, #e9c070 24%, #c92a35 42%, #b02330 60%, #248a50 76%, #2fa35f 100%);
+      background-size: calc(100% / max(var(--pr, 1), 0.02)) 100%;
+      background-repeat: no-repeat;
+    }
+    body.theme-christmas .progress-fill::after {
+      content: '';
+      position: absolute;
+      right: -8px;
+      top: 50%;
+      width: 16px;
+      height: 16px;
+      transform: translateY(-50%);
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 30%, #fff3c8 0%, #e0a93f 60%, #9a6a1c 100%);
+      border: 1px solid #5a3b10;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
+    }
+    body.theme-christmas input[type="range"] {
+      background: linear-gradient(90deg, #1d6a3f 0%, #2fa35f 100%);
+    }
   </style>
 </head>
 <body>
@@ -991,7 +1160,26 @@
        ========================================================================= -->
   <header class="topbar">
     <div class="brand">
-      <span class="brand-title"><span class="holly-accent">🎄 </span>CONCERT GRAND<span class="holly-accent"> ★</span></span>
+      <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+        <defs>
+          <symbol id="holly-sprig" viewBox="0 0 52 44">
+            <g transform="translate(26 26)">
+              <path d="M0 0 C-4 -9 -15 -14 -24 -9 C-21 -4 -23 -1 -19 2 C-16 6 -17 9 -12 11 C-7 12 -3 8 0 0Z" fill="#1d7a3a" stroke="#0e4a22" stroke-width="1"/>
+              <path d="M0 0 C-7 -3 -13 -5 -21 -8" fill="none" stroke="#7fd08e" stroke-width="1" opacity=".7"/>
+              <path d="M0 0 C4 -9 15 -14 24 -9 C21 -4 23 -1 19 2 C16 6 17 9 12 11 C7 12 3 8 0 0Z" fill="#23903f" stroke="#0e4a22" stroke-width="1"/>
+              <path d="M0 0 C7 -3 13 -5 21 -8" fill="none" stroke="#8fe09c" stroke-width="1" opacity=".7"/>
+              <path d="M0 0 C-2 7 -4 13 -2 18 C2 13 3 7 0 0Z" fill="#17692f" stroke="#0e4a22" stroke-width="1"/>
+              <circle cx="-4" cy="-1" r="4.6" fill="#c8182a" stroke="#6e0a14" stroke-width=".8"/>
+              <circle cx="4.5" cy="-1.5" r="4.6" fill="#d21f32" stroke="#6e0a14" stroke-width=".8"/>
+              <circle cx="0" cy="4.5" r="4.6" fill="#bd1527" stroke="#6e0a14" stroke-width=".8"/>
+              <circle cx="-5.3" cy="-2.6" r="1.2" fill="#ff9aa6"/>
+              <circle cx="3.2" cy="-3" r="1.2" fill="#ff9aa6"/>
+              <circle cx="-1.2" cy="3" r="1.2" fill="#ff9aa6"/>
+            </g>
+          </symbol>
+        </defs>
+      </svg>
+      <span class="brand-title"><svg class="holly-accent holly-ico" viewBox="0 0 52 44"><use href="#holly-sprig"/></svg><span class="brand-word">CONCERT GRAND</span><svg class="holly-accent holly-ico" viewBox="0 0 52 44"><use href="#holly-sprig"/></svg></span>
       <span class="version-badge" id="app-version-badge" title="Application Version">v1.1.1</span>
       <span class="brand-sub">88-Key Physical Modeling Piano</span>
     </div>
@@ -5125,6 +5313,7 @@ window.TEXTURE_DATA = {
 
       const pct = Math.max(0, Math.min(100, (songBeatPos / currentSong.totalBeats) * 100));
       progressFill.style.width = `${pct}%`;
+      progressFill.parentElement.style.setProperty('--pr', (pct / 100).toFixed(4)); // keeps the Christmas strip colours anchored to the full track
 
       const effectiveBpm = currentSong.bpm * songTempoMultiplier;
       const curSec = (songBeatPos / effectiveBpm) * 60;
