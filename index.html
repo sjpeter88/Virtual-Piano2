@@ -18,6 +18,83 @@
       --accent-green: #2ecc71;
     }
 
+    /* =========================================================================
+       CHRISTMAS THEME OVERRIDES (Warm Mahogany, Crimson, Pine Green & Gold)
+       ========================================================================= */
+    body.theme-christmas {
+      --bg-dark: #140907;
+      --bg-panel: rgba(28, 13, 11, 0.96);
+      --border-gold: rgba(228, 184, 102, 0.42);
+      --gold: #dfb365;
+      --gold-bright: #ffe19c;
+    }
+
+    body.theme-christmas .topbar {
+      background: linear-gradient(180deg, rgba(46, 17, 14, 0.97) 0%, rgba(26, 11, 9, 0.95) 100%);
+      border-bottom: 1px solid rgba(228, 184, 102, 0.45);
+    }
+
+    body.theme-christmas .practicebar {
+      background: linear-gradient(90deg, rgba(32, 14, 12, 0.94) 0%, rgba(16, 36, 22, 0.92) 50%, rgba(32, 14, 12, 0.94) 100%);
+      border-bottom: 1px solid rgba(228, 184, 102, 0.25);
+    }
+
+    body.theme-christmas .menu-btn {
+      background: linear-gradient(180deg, rgba(138, 25, 32, 0.55) 0%, rgba(88, 14, 19, 0.62) 100%);
+      border-color: rgba(228, 184, 102, 0.42);
+    }
+
+    body.theme-christmas .menu-btn:hover {
+      background: linear-gradient(180deg, rgba(168, 32, 40, 0.78) 0%, rgba(114, 20, 26, 0.82) 100%);
+      border-color: var(--gold-bright);
+    }
+
+    body.theme-christmas .menu-btn.active {
+      background: linear-gradient(180deg, #1f6b41 0%, #134a2b 100%);
+      color: #fff6dc;
+      border-color: var(--gold-bright);
+      box-shadow: 0 0 12px rgba(46, 204, 113, 0.28);
+    }
+
+    body.theme-christmas .chord-btn:nth-child(odd) {
+      background: rgba(142, 27, 34, 0.55);
+      border-color: rgba(228, 184, 102, 0.42);
+      color: #ffe8e8;
+    }
+
+    body.theme-christmas .chord-btn:nth-child(even) {
+      background: rgba(25, 86, 50, 0.58);
+      border-color: rgba(228, 184, 102, 0.42);
+      color: #e4ffed;
+    }
+
+    body.theme-christmas .chord-btn:hover {
+      filter: brightness(1.22);
+      border-color: var(--gold-bright);
+    }
+
+    body.theme-christmas .bottom-stack {
+      background: linear-gradient(180deg, rgba(36, 14, 12, 0.97) 0%, rgba(18, 9, 8, 0.99) 100%);
+    }
+
+    body.theme-christmas .progress-fill {
+      background: linear-gradient(90deg, #c92a35 0%, #e4b866 50%, #248a50 100%);
+    }
+
+    body.theme-christmas #lyrics-banner {
+      background: linear-gradient(180deg, rgba(38, 15, 13, 0.93) 0%, rgba(18, 32, 22, 0.95) 100%);
+      border-color: rgba(228, 184, 102, 0.48);
+    }
+
+    .holly-accent {
+      display: none;
+      font-size: 1.05rem;
+    }
+
+    body.theme-christmas .holly-accent {
+      display: inline;
+    }
+
     * {
       box-sizing: border-box;
       user-select: none;
@@ -874,7 +951,7 @@
        ========================================================================= -->
   <header class="topbar">
     <div class="brand">
-      <span class="brand-title">CONCERT GRAND</span>
+      <span class="brand-title"><span class="holly-accent">🎄 </span>CONCERT GRAND<span class="holly-accent"> ★</span></span>
       <span class="brand-sub">88-Key Physical Modeling Piano</span>
     </div>
 
@@ -928,6 +1005,10 @@
           <div class="field-row">
             <label>Sing-Along Lyrics Display</label>
             <button class="btn-sm active" id="toggle-lyrics-menu-btn">ON</button>
+          </div>
+          <div class="field-row">
+            <label>Visual Theme</label>
+            <button class="btn-sm active" id="toggle-theme-btn">Christmas</button>
           </div>
           <div class="field-row">
             <label>Camera Preset</label>
@@ -1240,6 +1321,7 @@
       scroll: 0,
       showLabels: true,
       showLyrics: true,
+      theme: 'christmas',
       octave: 4,
       scaleRoot: 0,
       scaleMode: 'none',
@@ -3126,6 +3208,402 @@
     pianoGroup.add(frontRail);
 
     // =========================================================================
+    // 4B. CHRISTMAS LIVING ROOM BACKGROUND & FESTIVE PIANO DECOR (3D)
+    // =========================================================================
+    const christmasRoomGroup = new THREE.Group();
+    scene.add(christmasRoomGroup);
+
+    const pianoDecorGroup = new THREE.Group();
+    pianoGroup.add(pianoDecorGroup);
+
+    // Helper: 5-point 3D star mesh
+    function createStarMesh(radius, colorHex) {
+      const shape = new THREE.Shape();
+      for (let i = 0; i < 10; i++) {
+        const r = i % 2 === 0 ? radius : radius * 0.42;
+        const a = (i * Math.PI) / 5 - Math.PI / 2;
+        const px = Math.cos(a) * r;
+        const py = -Math.sin(a) * r;
+        if (i === 0) shape.moveTo(px, py);
+        else shape.lineTo(px, py);
+      }
+      shape.closePath();
+      const geo = new THREE.ExtrudeGeometry(shape, { depth: 0.4, bevelEnabled: true, bevelSize: 0.12, bevelThickness: 0.12 });
+      geo.center();
+      const mat = new THREE.MeshStandardMaterial({
+        color: colorHex,
+        emissive: colorHex,
+        emissiveIntensity: 0.85,
+        roughness: 0.2,
+        metalness: 0.7
+      });
+      return new THREE.Mesh(geo, mat);
+    }
+
+    // Helper: 3D Poinsettia flower with layered crimson petals and gold center
+    function createPoinsettia(scale = 1.0) {
+      const flower = new THREE.Group();
+      const petalMat = new THREE.MeshStandardMaterial({
+        color: 0xb81422,
+        emissive: 0x3a0408,
+        roughness: 0.45
+      });
+      const petalGeo = new THREE.ConeGeometry(0.55 * scale, 1.45 * scale, 5);
+      petalGeo.rotateX(Math.PI / 2);
+      petalGeo.translate(0, 0, 0.72 * scale);
+
+      for (let i = 0; i < 7; i++) {
+        const p = new THREE.Mesh(petalGeo, petalMat);
+        p.rotation.y = (i / 7) * Math.PI * 2;
+        p.rotation.x = 0.22;
+        flower.add(p);
+      }
+      const centerMat = new THREE.MeshStandardMaterial({
+        color: 0xffd24a,
+        emissive: 0xaa7711,
+        emissiveIntensity: 0.5,
+        roughness: 0.3
+      });
+      for (let i = 0; i < 4; i++) {
+        const dot = new THREE.Mesh(new THREE.SphereGeometry(0.16 * scale, 8, 8), centerMat);
+        const a = (i / 4) * Math.PI * 2;
+        dot.position.set(Math.cos(a) * 0.18 * scale, 0.18 * scale, Math.sin(a) * 0.18 * scale);
+        flower.add(dot);
+      }
+      return flower;
+    }
+
+    // --- Festive Piano Fallboard Garland, Poinsettias & Lacquer Reflections ---
+    const pineMat = new THREE.MeshStandardMaterial({ color: 0x134723, roughness: 0.75 });
+    const berryMat = new THREE.MeshStandardMaterial({ color: 0xd11928, roughness: 0.3, emissive: 0x330408 });
+    const pianoGarlandLights = [];
+
+    for (let x = -56; x <= 56; x += 3.2) {
+      const bough = new THREE.Mesh(new THREE.SphereGeometry(1.15, 7, 6), pineMat);
+      bough.scale.set(1.5, 0.65, 0.85);
+      bough.position.set(x, 5.75 + Math.sin(x * 0.18) * 0.18, -WHITE_KEY_LENGTH / 2 - 1.6);
+      pianoDecorGroup.add(bough);
+
+      if (Math.abs(x) % 6.4 < 3.2) {
+        const berry = new THREE.Mesh(new THREE.SphereGeometry(0.24, 6, 6), berryMat);
+        berry.position.set(x + 0.6, 6.25, -WHITE_KEY_LENGTH / 2 - 1.2);
+        pianoDecorGroup.add(berry);
+      }
+
+      if (Math.abs(x) % 9.6 < 3.2) {
+        const bulbColor = (Math.round(x) % 2 === 0) ? 0xffd27a : (Math.round(x) % 3 === 0 ? 0xff3b47 : 0x39d978);
+        const bulbMat = new THREE.MeshBasicMaterial({ color: bulbColor });
+        const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.22, 6, 6), bulbMat);
+        bulb.position.set(x - 0.5, 6.15, -WHITE_KEY_LENGTH / 2 - 1.0);
+        pianoDecorGroup.add(bulb);
+        pianoGarlandLights.push({ mesh: bulb, phase: x * 0.5 });
+      }
+    }
+
+    [-46, -16, 16, 46].forEach((px) => {
+      const poinsettia = createPoinsettia(1.15);
+      poinsettia.position.set(px, 6.1, -WHITE_KEY_LENGTH / 2 - 1.1);
+      poinsettia.rotation.x = 0.35;
+      pianoDecorGroup.add(poinsettia);
+    });
+
+    // Subtle festive accent lights for red/green/gold reflections on the black lacquer
+    const xmasRedReflectLight = new THREE.PointLight(0xff3344, 1.2, 65);
+    xmasRedReflectLight.position.set(-28, 12, -12);
+    pianoDecorGroup.add(xmasRedReflectLight);
+
+    const xmasGreenReflectLight = new THREE.PointLight(0x22dd66, 1.0, 65);
+    xmasGreenReflectLight.position.set(28, 12, -12);
+    pianoDecorGroup.add(xmasGreenReflectLight);
+
+    // --- Living Room Backdrop (Positioned in upper-screen band behind piano) ---
+    const ROOM_Z = -66;
+    const ROOM_FLOOR_Y = -36;
+
+    const wallMat = new THREE.MeshStandardMaterial({ color: 0x3b261d, roughness: 0.88 });
+    const wainscotMat = new THREE.MeshStandardMaterial({ color: 0x26150f, roughness: 0.72 });
+    const woodDarkMat = new THREE.MeshStandardMaterial({ color: 0x3d2014, roughness: 0.62 });
+    const floorMat = new THREE.MeshStandardMaterial({ color: 0x2a1810, roughness: 0.55 });
+
+    const backWall = new THREE.Mesh(new THREE.PlaneGeometry(240, 80), wallMat);
+    backWall.position.set(0, ROOM_FLOOR_Y + 40, ROOM_Z);
+    christmasRoomGroup.add(backWall);
+
+    const wainscot = new THREE.Mesh(new THREE.BoxGeometry(240, 14, 0.6), wainscotMat);
+    wainscot.position.set(0, ROOM_FLOOR_Y + 7, ROOM_Z + 0.3);
+    christmasRoomGroup.add(wainscot);
+
+    const roomFloor = new THREE.Mesh(new THREE.PlaneGeometry(240, 90), floorMat);
+    roomFloor.rotation.x = -Math.PI / 2;
+    roomFloor.position.set(0, ROOM_FLOOR_Y, ROOM_Z + 35);
+    christmasRoomGroup.add(roomFloor);
+
+    // --- Center Brick Fireplace, Mantel, Stockings, Wreath & Flickering Fire ---
+    const fireplaceGroup = new THREE.Group();
+    fireplaceGroup.position.set(0, ROOM_FLOOR_Y, ROOM_Z + 1.5);
+    christmasRoomGroup.add(fireplaceGroup);
+
+    const brickMat = new THREE.MeshStandardMaterial({ color: 0x5c271c, roughness: 0.92 });
+    const hearthMat = new THREE.MeshStandardMaterial({ color: 0x1a1514, roughness: 0.85 });
+
+    const chimneyBreast = new THREE.Mesh(new THREE.BoxGeometry(30, 42, 3.5), brickMat);
+    chimneyBreast.position.set(0, 21, 0);
+    fireplaceGroup.add(chimneyBreast);
+
+    const firebox = new THREE.Mesh(new THREE.BoxGeometry(16, 11, 2.2), hearthMat);
+    firebox.position.set(0, 5.5, 1.0);
+    fireplaceGroup.add(firebox);
+
+    const mantelShelf = new THREE.Mesh(new THREE.BoxGeometry(33, 1.8, 5.2), woodDarkMat);
+    mantelShelf.position.set(0, 14.2, 1.4);
+    fireplaceGroup.add(mantelShelf);
+
+    // Animated Fire Flames & Flickering PointLight
+    const fireFlames = [];
+    const flameColors = [0xff5500, 0xff9900, 0xffdd44];
+    for (let i = 0; i < 7; i++) {
+      const fGeo = new THREE.ConeGeometry(1.1 + (i % 2) * 0.5, 4.2 + (i % 3) * 1.4, 6);
+      const fMat = new THREE.MeshBasicMaterial({
+        color: flameColors[i % flameColors.length],
+        transparent: true,
+        opacity: 0.86
+      });
+      const flame = new THREE.Mesh(fGeo, fMat);
+      flame.position.set((i - 3) * 1.65, 2.8, 1.8 + (i % 2) * 0.35);
+      fireplaceGroup.add(flame);
+      fireFlames.push({ mesh: flame, baseY: 2.8, phase: i * 1.3 });
+    }
+
+    const fireLight = new THREE.PointLight(0xff7722, 3.8, 95);
+    fireLight.position.set(0, 6.5, 6);
+    fireplaceGroup.add(fireLight);
+
+    // 3 Hanging Stockings on the Mantel (Red & Green with white cuffs)
+    const whiteCuffMat = new THREE.MeshStandardMaterial({ color: 0xf4eee4, roughness: 0.9 });
+    [-9.5, 0, 9.5].forEach((sx, idx) => {
+      const stocking = new THREE.Group();
+      const sColor = idx === 1 ? 0x166335 : 0xb51824;
+      const sMat = new THREE.MeshStandardMaterial({ color: sColor, roughness: 0.8 });
+      const leg = new THREE.Mesh(new THREE.BoxGeometry(2.1, 4.2, 0.8), sMat);
+      const foot = new THREE.Mesh(new THREE.BoxGeometry(3.2, 1.6, 0.8), sMat);
+      foot.position.set(0.6, -2.1, 0);
+      const cuff = new THREE.Mesh(new THREE.BoxGeometry(2.4, 1.1, 1.0), whiteCuffMat);
+      cuff.position.set(0, 2.0, 0.1);
+      stocking.add(leg, foot, cuff);
+      stocking.position.set(sx, 11.2, 3.8);
+      stocking.rotation.z = (idx - 1) * -0.06;
+      fireplaceGroup.add(stocking);
+    });
+
+    // Mantel Garland
+    for (let gx = -15; gx <= 15; gx += 2.2) {
+      const mBough = new THREE.Mesh(new THREE.SphereGeometry(0.95, 6, 6), pineMat);
+      mBough.scale.set(1.4, 0.75, 0.8);
+      mBough.position.set(gx, 15.3, 3.4);
+      fireplaceGroup.add(mBough);
+    }
+
+    // Christmas Wreath with Red Bow & Gold Star above the Mantel
+    const wreathGroup = new THREE.Group();
+    wreathGroup.position.set(0, 23.5, 2.2);
+    const wreathRing = new THREE.Mesh(new THREE.TorusGeometry(4.4, 1.05, 8, 20), pineMat);
+    wreathGroup.add(wreathRing);
+    const bowMat = new THREE.MeshStandardMaterial({ color: 0xc91a28, roughness: 0.4 });
+    const bowCenter = new THREE.Mesh(new THREE.SphereGeometry(0.85, 8, 8), bowMat);
+    bowCenter.position.set(0, 4.4, 0.9);
+    const bowL = new THREE.Mesh(new THREE.ConeGeometry(1.1, 2.2, 5), bowMat);
+    bowL.rotation.z = Math.PI / 2;
+    bowL.position.set(-1.3, 4.4, 0.8);
+    const bowR = new THREE.Mesh(new THREE.ConeGeometry(1.1, 2.2, 5), bowMat);
+    bowR.rotation.z = -Math.PI / 2;
+    bowR.position.set(1.3, 4.4, 0.8);
+    const wreathStar = createStarMesh(1.75, 0xffcf48);
+    wreathStar.position.set(0, 0, 0.6);
+    wreathGroup.add(bowCenter, bowL, bowR, wreathStar);
+    fireplaceGroup.add(wreathGroup);
+
+    // --- Two Paned Windows with Falling Snow Outside ---
+    const snowSystems = [];
+    function createSnowWindow(wx) {
+      const winGroup = new THREE.Group();
+      winGroup.position.set(wx, ROOM_FLOOR_Y + 20, ROOM_Z + 0.8);
+
+      const nightSkyMat = new THREE.MeshBasicMaterial({ color: 0x0b162e });
+      const skyPane = new THREE.Mesh(new THREE.PlaneGeometry(18, 22), nightSkyMat);
+      skyPane.position.z = 0.1;
+      winGroup.add(skyPane);
+
+      // Subtle moonlight glow inside window
+      const moon = new THREE.Mesh(
+        new THREE.CircleGeometry(1.8, 16),
+        new THREE.MeshBasicMaterial({ color: 0xdbeaff })
+      );
+      moon.position.set(4.5, 6.5, 0.2);
+      winGroup.add(moon);
+
+      // Falling Snow Particles inside window bounds
+      const snowCount = 110;
+      const snowPositions = new Float32Array(snowCount * 3);
+      for (let i = 0; i < snowCount; i++) {
+        snowPositions[i * 3] = (Math.random() - 0.5) * 17;
+        snowPositions[i * 3 + 1] = (Math.random() - 0.5) * 21;
+        snowPositions[i * 3 + 2] = 0.4 + Math.random() * 0.4;
+      }
+      const snowGeo = new THREE.BufferGeometry();
+      snowGeo.setAttribute('position', new THREE.BufferAttribute(snowPositions, 3));
+      const snowMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.45, transparent: true, opacity: 0.88 });
+      const snowPoints = new THREE.Points(snowGeo, snowMat);
+      winGroup.add(snowPoints);
+      snowSystems.push(snowPoints);
+
+      // Window Frame & Mullions
+      const frameMat = woodDarkMat;
+      const topBar = new THREE.Mesh(new THREE.BoxGeometry(19.6, 1.2, 1.2), frameMat);
+      topBar.position.set(0, 11.2, 0.9);
+      const botBar = new THREE.Mesh(new THREE.BoxGeometry(20.4, 1.4, 1.5), frameMat);
+      botBar.position.set(0, -11.2, 0.9);
+      const leftBar = new THREE.Mesh(new THREE.BoxGeometry(1.2, 23, 1.2), frameMat);
+      leftBar.position.set(-9.2, 0, 0.9);
+      const rightBar = new THREE.Mesh(new THREE.BoxGeometry(1.2, 23, 1.2), frameMat);
+      rightBar.position.set(9.2, 0, 0.9);
+      const vMullion = new THREE.Mesh(new THREE.BoxGeometry(0.55, 22, 0.8), frameMat);
+      vMullion.position.set(0, 0, 0.9);
+      const hMullion1 = new THREE.Mesh(new THREE.BoxGeometry(18, 0.55, 0.8), frameMat);
+      hMullion1.position.set(0, 3.6, 0.9);
+      const hMullion2 = new THREE.Mesh(new THREE.BoxGeometry(18, 0.55, 0.8), frameMat);
+      hMullion2.position.set(0, -3.6, 0.9);
+      winGroup.add(topBar, botBar, leftBar, rightBar, vMullion, hMullion1, hMullion2);
+
+      christmasRoomGroup.add(winGroup);
+    }
+
+    createSnowWindow(-31);
+    createSnowWindow(31);
+
+    // --- Two Decorated Christmas Trees Flanking Each Side ---
+    const treeFairyLights = [];
+    function createChristmasTree(tx, tz, scale = 1.0) {
+      const tree = new THREE.Group();
+      tree.position.set(tx, ROOM_FLOOR_Y, tz);
+      tree.scale.setScalar(scale);
+
+      const trunk = new THREE.Mesh(
+        new THREE.CylinderGeometry(1.4, 1.8, 4.5, 8),
+        new THREE.MeshStandardMaterial({ color: 0x3b2113, roughness: 0.9 })
+      );
+      trunk.position.y = 2.2;
+      tree.add(trunk);
+
+      const treePineMat = new THREE.MeshStandardMaterial({ color: 0x114c22, roughness: 0.8 });
+      const tiers = [
+        { r: 8.5, h: 10.5, y: 8.5 },
+        { r: 6.8, h: 9.5,  y: 14.5 },
+        { r: 5.0, h: 8.5,  y: 20.0 },
+        { r: 3.3, h: 7.0,  y: 24.5 }
+      ];
+      tiers.forEach((t) => {
+        const cone = new THREE.Mesh(new THREE.ConeGeometry(t.r, t.h, 12), treePineMat);
+        cone.position.y = t.y;
+        tree.add(cone);
+      });
+
+      // Ornaments & Twinkling Fairy Lights
+      const ornColors = [0xd61c28, 0xffcf48, 0x3888ff, 0xf4eee4];
+      for (let i = 0; i < 28; i++) {
+        const hNorm = 0.12 + (i / 28) * 0.82;
+        const y = 5.0 + hNorm * 22.0;
+        const maxR = (1.0 - hNorm * 0.82) * 7.6;
+        const angle = i * 2.39996; // Golden angle spiral
+        const ox = Math.cos(angle) * maxR;
+        const oz = Math.sin(angle) * maxR;
+
+        if (i % 2 === 0) {
+          const oMat = new THREE.MeshStandardMaterial({
+            color: ornColors[i % ornColors.length],
+            roughness: 0.18,
+            metalness: 0.75
+          });
+          const orn = new THREE.Mesh(new THREE.SphereGeometry(0.55, 8, 8), oMat);
+          orn.position.set(ox, y, oz);
+          tree.add(orn);
+        } else {
+          const lColor = i % 3 === 0 ? 0xffe28a : (i % 5 === 0 ? 0xff4455 : 0x44ee88);
+          const lMat = new THREE.MeshBasicMaterial({ color: lColor });
+          const lightBulb = new THREE.Mesh(new THREE.SphereGeometry(0.32, 6, 6), lMat);
+          lightBulb.position.set(ox * 1.03, y, oz * 1.03);
+          tree.add(lightBulb);
+          treeFairyLights.push({ mesh: lightBulb, phase: i * 0.7 });
+        }
+      }
+
+      // Glowing Golden Star on Top
+      const topStar = createStarMesh(2.2, 0xffd858);
+      topStar.position.set(0, 29.2, 0);
+      tree.add(topStar);
+
+      // Wrapped Gifts under the tree
+      const giftData = [
+        [-4.2, 1.5, 3.5, 3.0, 0xb81824],
+        [3.8, 1.2, 4.0, 2.4, 0x166335],
+        [-0.8, 1.0, 5.2, 2.0, 0xd4a438]
+      ];
+      giftData.forEach(([gx, gy, gz, s, col]) => {
+        const box = new THREE.Mesh(
+          new THREE.BoxGeometry(s, s * 0.75, s),
+          new THREE.MeshStandardMaterial({ color: col, roughness: 0.5 })
+        );
+        box.position.set(gx, gy, gz);
+        tree.add(box);
+      });
+
+      const treeLight = new THREE.PointLight(0xffd27a, 1.6, 55);
+      treeLight.position.set(0, 16, 6);
+      tree.add(treeLight);
+
+      christmasRoomGroup.add(tree);
+    }
+
+    createChristmasTree(-51, ROOM_Z + 9, 1.0);
+    createChristmasTree(51, ROOM_Z + 9, 1.0);
+
+    // --- Left-Side Wooden Bookshelf with Colorful Books & Candles ---
+    const bookshelfGroup = new THREE.Group();
+    bookshelfGroup.position.set(-72, ROOM_FLOOR_Y, ROOM_Z + 12);
+    bookshelfGroup.rotation.y = 0.35;
+    christmasRoomGroup.add(bookshelfGroup);
+
+    const shelfBack = new THREE.Mesh(new THREE.BoxGeometry(16, 30, 0.8), wainscotMat);
+    shelfBack.position.set(0, 15, -1.5);
+    const shelfL = new THREE.Mesh(new THREE.BoxGeometry(1.0, 30, 4.2), woodDarkMat);
+    shelfL.position.set(-7.5, 15, 0);
+    const shelfR = new THREE.Mesh(new THREE.BoxGeometry(1.0, 30, 4.2), woodDarkMat);
+    shelfR.position.set(7.5, 15, 0);
+    bookshelfGroup.add(shelfBack, shelfL, shelfR);
+
+    const bookColors = [0xb8222e, 0x1d6b3c, 0x26589e, 0xd49b35, 0x7b3294, 0xd96b27, 0xe8dec8];
+    [2, 9, 16, 23, 29.5].forEach((sy, sIdx) => {
+      const plank = new THREE.Mesh(new THREE.BoxGeometry(16, 0.8, 4.2), woodDarkMat);
+      plank.position.set(0, sy, 0);
+      bookshelfGroup.add(plank);
+
+      if (sIdx < 4) {
+        let bx = -6.2;
+        for (let b = 0; b < 9 && bx < 5.8; b++) {
+          const bw = 0.85 + ((b + sIdx) % 3) * 0.25;
+          const bh = 3.8 + ((b * 2 + sIdx) % 3) * 0.85;
+          const bMat = new THREE.MeshStandardMaterial({
+            color: bookColors[(b + sIdx * 3) % bookColors.length],
+            roughness: 0.65
+          });
+          const book = new THREE.Mesh(new THREE.BoxGeometry(bw, bh, 2.8), bMat);
+          book.position.set(bx, sy + 0.4 + bh / 2, 0.2);
+          bookshelfGroup.add(book);
+          bx += bw + 0.16;
+        }
+      }
+    });
+
+    // =========================================================================
     // 5. GENERATE 88 KEYS WITH PIVOT HINGES, LABELS & SCALE HIGHLIGHT MARKERS
     // =========================================================================
     const keyMap = new Map();
@@ -4304,6 +4782,27 @@
       applyNoteLabelsVisibility();
     });
 
+    let activeTheme = userSettings.theme || 'christmas';
+    const toggleThemeBtn = document.getElementById('toggle-theme-btn');
+    function applyVisualTheme() {
+      const isXmas = activeTheme === 'christmas';
+      document.body.classList.toggle('theme-christmas', isXmas);
+      toggleThemeBtn.classList.toggle('active', isXmas);
+      toggleThemeBtn.textContent = isXmas ? 'Christmas' : 'Classic Studio';
+      christmasRoomGroup.visible = isXmas;
+      pianoDecorGroup.visible = isXmas;
+      scene.background.setHex(isXmas ? 0x160c09 : 0x0e0b09);
+      scene.fog.color.setHex(isXmas ? 0x160c09 : 0x0e0b09);
+      scene.fog.density = isXmas ? 0.0014 : 0.0028;
+    }
+
+    toggleThemeBtn.addEventListener('click', () => {
+      activeTheme = activeTheme === 'christmas' ? 'studio' : 'christmas';
+      userSettings.theme = activeTheme;
+      saveSettings();
+      applyVisualTheme();
+    });
+
     // Hydrate UI controls from saved localStorage settings
     function applyInitialSettingsToUI() {
       volumeSlider.value = String(userSettings.volume);
@@ -4326,6 +4825,7 @@
 
       applyNoteLabelsVisibility();
       applyLyricsVisibility();
+      applyVisualTheme();
       refreshOctaveLabels();
       updateScaleHighlighting();
       updateCameraTransform();
@@ -4386,6 +4886,38 @@
 
       // Advance self-playing song sequencer
       stepSongSequencer(dt);
+
+      // Animate Christmas Living Room (fireplace flicker, falling snow & twinkling lights)
+      if (christmasRoomGroup.visible) {
+        const t = now * 0.001;
+        fireLight.intensity = 3.4 + Math.sin(t * 9.3) * 0.55 + Math.cos(t * 14.7) * 0.35;
+        for (let i = 0; i < fireFlames.length; i++) {
+          const fl = fireFlames[i];
+          const sy = 0.85 + Math.sin(t * 11.0 + fl.phase) * 0.28 + Math.cos(t * 17.0 + fl.phase) * 0.12;
+          fl.mesh.scale.set(0.92 + Math.sin(t * 7 + fl.phase) * 0.1, sy, 1.0);
+          fl.mesh.position.y = fl.baseY + (sy - 1.0) * 1.4;
+        }
+        for (let s = 0; s < snowSystems.length; s++) {
+          const posAttr = snowSystems[s].geometry.attributes.position;
+          const arr = posAttr.array;
+          for (let i = 0; i < arr.length; i += 3) {
+            arr[i + 1] -= dt * (2.6 + (i % 5) * 0.45);
+            arr[i] += Math.sin(t * 1.4 + i) * dt * 0.4;
+            if (arr[i + 1] < -10.5) arr[i + 1] = 10.5;
+          }
+          posAttr.needsUpdate = true;
+        }
+        for (let i = 0; i < treeFairyLights.length; i++) {
+          const b = treeFairyLights[i];
+          const sc = 0.78 + 0.32 * Math.sin(t * 3.2 + b.phase);
+          b.mesh.scale.setScalar(sc);
+        }
+        for (let i = 0; i < pianoGarlandLights.length; i++) {
+          const b = pianoGarlandLights[i];
+          const sc = 0.8 + 0.3 * Math.sin(t * 2.8 + b.phase);
+          b.mesh.scale.setScalar(sc);
+        }
+      }
 
       const springSpeed = 28;
       for (const key of keyMap.values()) {
