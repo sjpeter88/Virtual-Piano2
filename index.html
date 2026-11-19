@@ -227,6 +227,7 @@
     @media (max-width: 1020px) {
       .rec-label { display: none; }
     }
+
     .menu-btn.recording {
       color: #fff;
       background: rgba(190, 30, 40, 0.85);
@@ -1152,6 +1153,20 @@
     body.theme-christmas input[type="range"] {
       background: linear-gradient(90deg, #1d6a3f 0%, #2fa35f 100%);
     }
+
+    /* Keep the bottom player bar usable (progress track not squeezed away) on narrow windows */
+    @media (max-width: 1250px) {
+      .playerbar { gap: 10px; padding: 0 12px; }
+      .now-playing-label { min-width: 0; max-width: 150px; font-size: 0.74rem; }
+      .player-controls { gap: 5px; }
+      body.theme-christmas .player-controls .btn-sm { padding: 5px 8px; font-size: 0.76rem; }
+      .time-readout { min-width: 70px; font-size: 0.72rem; }
+    }
+    @media (max-width: 1020px) {
+      .now-playing-label { max-width: 96px; }
+      body.theme-christmas .player-controls .btn-sm { padding: 5px 6px; font-size: 0.72rem; }
+      .progress-wrap { min-width: 90px; }
+    }
   </style>
 </head>
 <body>
@@ -1505,6 +1520,7 @@
         <button class="btn-sm" id="player-play-btn" title="Play / Pause selected song">▶ Play</button>
         <button class="btn-sm" id="player-stop-btn" title="Stop song and reset to start">■ Stop</button>
         <button class="btn-sm" id="player-loop-btn" title="Loop song playback">⟳ Loop: OFF</button>
+        <button class="btn-sm" id="player-playall-btn" title="Play every song in the library back to back (starts over after the last one)">⏭ Play All: OFF</button>
         <button class="btn-sm" id="open-lyrics-sheet-btn" title="Open Full Lyrics Sheet (click any line to jump)">📜 Lyrics Sheet</button>
       </div>
 
@@ -1593,6 +1609,7 @@ window.TEXTURE_DATA = {
       metroMeter: 4,
       songTempo: 100,
       songLoop: false,
+      songPlayAll: false,
       selectedSongId: 'joy_to_the_world'
     };
 
@@ -5194,6 +5211,8 @@ window.TEXTURE_DATA = {
     let songBeatPos = 0;
     let songTempoMultiplier = userSettings.songTempo / 100; // 0.50 to 1.50
     let songLoop = Boolean(userSettings.songLoop);
+    let songPlayAll = Boolean(userSettings.songPlayAll) && !songLoop; // Loop and Play All are mutually exclusive
+    const PLAY_ALL_LEAD_IN_BEATS = 1.5; // short silent gap before the next song starts
     let showLyrics = userSettings.showLyrics !== false;
     let currentSongFilter = 'all';
     const activeSongNotes = new Set(); // indices into currentSong.notes currently sounding
@@ -5203,6 +5222,7 @@ window.TEXTURE_DATA = {
     const playerPlayBtn = document.getElementById('player-play-btn');
     const playerStopBtn = document.getElementById('player-stop-btn');
     const playerLoopBtn = document.getElementById('player-loop-btn');
+    const playerPlayAllBtn = document.getElementById('player-playall-btn');
     const progressTrack = document.getElementById('player-progress-track');
     const progressFill = document.getElementById('player-progress-fill');
     const timeReadout = document.getElementById('player-time-readout');
@@ -5305,18 +5325,23 @@ window.TEXTURE_DATA = {
     }
 
     function updatePlayerUI() {
-      nowPlayingTitle.textContent = `Song: ${currentSong.title}`;
+      const playAllIndex = PUBLIC_DOMAIN_SONGS.indexOf(currentSong) + 1;
+      nowPlayingTitle.textContent = songPlayAll
+        ? `Song ${playAllIndex}/${PUBLIC_DOMAIN_SONGS.length}: ${currentSong.title}`
+        : `Song: ${currentSong.title}`;
       playerPlayBtn.textContent = songPlaying ? '⏸ Pause' : '▶ Play';
       playerPlayBtn.classList.toggle('active', songPlaying);
       playerLoopBtn.textContent = `⟳ Loop: ${songLoop ? 'ON' : 'OFF'}`;
       playerLoopBtn.classList.toggle('active', songLoop);
+      playerPlayAllBtn.textContent = `⏭ Play All: ${songPlayAll ? 'ON' : 'OFF'}`;
+      playerPlayAllBtn.classList.toggle('active', songPlayAll);
 
       const pct = Math.max(0, Math.min(100, (songBeatPos / currentSong.totalBeats) * 100));
       progressFill.style.width = `${pct}%`;
       progressFill.parentElement.style.setProperty('--pr', (pct / 100).toFixed(4)); // keeps the Christmas strip colours anchored to the full track
 
       const effectiveBpm = currentSong.bpm * songTempoMultiplier;
-      const curSec = (songBeatPos / effectiveBpm) * 60;
+      const curSec = (Math.max(0, songBeatPos) / effectiveBpm) * 60;
       const totSec = (currentSong.totalBeats / effectiveBpm) * 60;
       timeReadout.textContent = `${formatSeconds(curSec)} / ${formatSeconds(totSec)}`;
 
@@ -5450,7 +5475,27 @@ window.TEXTURE_DATA = {
 
     playerLoopBtn.addEventListener('click', () => {
       songLoop = !songLoop;
+      if (songLoop) songPlayAll = false; // looping one song and playing all songs can't both apply
       userSettings.songLoop = songLoop;
+      userSettings.songPlayAll = songPlayAll;
+      saveSettings();
+      updatePlayerUI();
+    });
+
+    // Play All: plays every song in the library back to back (wrapping to the first after the last).
+    // Turning it on while stopped starts playback from the current song.
+    playerPlayAllBtn.addEventListener('click', () => {
+      songPlayAll = !songPlayAll;
+      if (songPlayAll) {
+        songLoop = false;
+        userSettings.songLoop = false;
+        if (!songPlaying) {
+          ensureAudioStarted();
+          if (songBeatPos >= currentSong.totalBeats) songBeatPos = 0;
+          songPlaying = true;
+        }
+      }
+      userSettings.songPlayAll = songPlayAll;
       saveSettings();
       updatePlayerUI();
     });
@@ -5499,7 +5544,15 @@ window.TEXTURE_DATA = {
 
       if (songBeatPos >= currentSong.totalBeats) {
         releaseAllSongNotes();
-        if (songLoop) {
+        if (songPlayAll) {
+          // Advance to the next song in the library (wrap to the first), with a short silent lead-in
+          const nextIdx = (PUBLIC_DOMAIN_SONGS.indexOf(currentSong) + 1) % PUBLIC_DOMAIN_SONGS.length;
+          currentSong = PUBLIC_DOMAIN_SONGS[nextIdx];
+          userSettings.selectedSongId = currentSong.id;
+          saveSettings();
+          songBeatPos = -PLAY_ALL_LEAD_IN_BEATS;
+          if (lyricsSheetBackdrop.classList.contains('open')) renderLyricsSheetModal();
+        } else if (songLoop) {
           songBeatPos = 0;
         } else {
           songBeatPos = currentSong.totalBeats;
