@@ -11,7 +11,7 @@ This repository (`d:\AntiGravityDesktop\Virtual-Piano2`) contains the **Concert 
   - When building a new Windows executable release, increment the version (e.g., `v1.0.1` or `v1.1.0`) in three places so they stay in sync:
     1. `index.html`: `#app-version-badge` HTML text and `const APP_VERSION = 'vX.Y.Z';`
     2. `desktop-shell/Program.cs`: `public const string AppVersion = "vX.Y.Z";`
-    3. `desktop-shell/ConcertGrandShell.csproj`: `<AssemblyName>ConcertGrandPiano-vX.Y.Z</AssemblyName>` and `<Version>X.Y.Z</Version>` (so the output executable has the version right before `.exe`, e.g., `ConcertGrandPiano-v1.1.1.exe`).
+    3. `desktop-shell/ConcertGrandShell.csproj`: `<AssemblyName>ConcertGrandPiano-vX.Y.Z</AssemblyName>` and `<Version>X.Y.Z</Version>` (so the output executable has the version right before `.exe`, e.g., `ConcertGrandPiano-v1.2.0.exe`).
 
 ## 2. File Structure
 - `index.html` — Complete 3D Virtual Piano application (14 numbered code sections: settings, 26 public-domain songs with two-hand note data & synchronized lyrics, AudioWorklet processor, Three.js 88-key grand piano + 3D Christmas living room, mouse/multi-touch/DAW keyboard/Web MIDI input, chords/scales/metronome, and WebView2 desktop bridge).
@@ -19,9 +19,9 @@ This repository (`d:\AntiGravityDesktop\Virtual-Piano2`) contains the **Concert 
 - `desktop-shell/ConcertGrandShell.csproj` — .NET 10 WinForms + WebView2 project that embeds `..\index.html` and `..\lib\three.module.min.js` directly into the `.exe` binary as `EmbeddedResource` items.
 - `desktop-shell/Program.cs` — Single-file WebView2 host (`MainForm`). Serves embedded resources via `https://concertgrand.app/index.html`, enables zero-click audio autoplay (`--autoplay-policy=no-user-gesture-required`), auto-grants MIDI permissions, supports `F11` / `Alt+Enter` fullscreen, and supports **Option 1B** (`Ctrl+Shift+G` or View menu button) to toggle between the embedded offline build and `https://sjpeter88.github.io/Virtual-Piano2/`.
 - `desktop-shell/piano.ico` — Multi-resolution (16–256 px) app icon, wired in via `<ApplicationIcon>`; also used as the window/taskbar icon at runtime.
-- `ConcertGrandPiano-v1.1.1.exe` — Framework-dependent single-file executable (~2 MB, needs .NET 10 Desktop Runtime) in the project root.
-- `ConcertGrandPiano-v1.1.1-Standalone.exe` — Self-contained build (~118 MB, no .NET needed). **Git-ignored** because it exceeds GitHub's 100 MB file limit; rebuild locally.
-- v1.1.1 shell features: window size/position/maximized state remembered in `%LOCALAPPDATA%\ConcertGrandPiano\window-state.json`; browser back/forward and off-site navigation blocked (DevTools F12 still available); `--kiosk` launch argument for borderless fullscreen with a floating Minimize/Windowed/Exit pill; native Save As dialog for downloads; **Record** button (top bar) captures the piano output to a 16-bit stereo `.wav` (metronome clicks excluded).
+- `ConcertGrandPiano-v1.2.0.exe` — Framework-dependent single-file executable (~2 MB, needs .NET 10 Desktop Runtime) in the project root.
+- `ConcertGrandPiano-v1.2.0-Standalone.exe` — Self-contained build (~118 MB, no .NET needed). **Git-ignored** because it exceeds GitHub's 100 MB file limit; rebuild locally.
+- v1.2.0 shell features: window size/position/maximized state remembered in `%LOCALAPPDATA%\ConcertGrandPiano\window-state.json`; browser back/forward and off-site navigation blocked (DevTools F12 still available); `--kiosk` launch argument for borderless fullscreen with a floating Minimize/Windowed/Exit pill; native Save As dialog for downloads; **Record** button (top bar) captures the piano output to a 16-bit stereo `.wav` (metronome clicks excluded).
 
 ## 2b. Textures
 - Source images (12 seamless JPGs generated with Gemini) live in `images/textures/`: `floor_oak`, `wall_plaster`, `brick_fireplace`, `bookcase_oak`, `pine_needles`, `knit_red`, `knit_green`, `book_spines`, `window_night`, `rug_persian`, `gift_wrap_red`, `gift_wrap_gold`.
