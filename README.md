@@ -1,6 +1,6 @@
-# Concert Grand — 3D Virtual Piano (`v1.1.0`)
+# Concert Grand — 3D Virtual Piano (`v1.1.1`)
 
-A self-contained, offline-capable 3D 88-key Concert Grand Virtual Piano built with **Three.js** and a physical-modeling **Web Audio API `AudioWorklet`** engine, plus a single-file **.NET 10 + WebView2** Windows desktop application (`ConcertGrandPiano-v1.1.0.exe`).
+A self-contained, offline-capable 3D 88-key Concert Grand Virtual Piano built with **Three.js** and a physical-modeling **Web Audio API `AudioWorklet`** engine, plus a single-file **.NET 10 + WebView2** Windows desktop application (`ConcertGrandPiano-v1.1.1.exe`).
 
 - **Live Website (GitHub Pages):** https://sjpeter88.github.io/Virtual-Piano2/
 - **GitHub Repository:** https://github.com/sjpeter88/Virtual-Piano2
@@ -14,6 +14,6 @@ A self-contained, offline-capable 3D 88-key Concert Grand Virtual Piano built wi
 - **Practice Helpers**: 8 quick chord buttons (`C`, `G`, `D`, `Am`, `Em`, `F`, `Dm`, `E7`), scale/key highlighter across all 88 keys, and a precision Web Audio metronome.
 - **26 Complete Public-Domain Songs with Synchronized Lyrics**: 18 full multi-verse Christmas & holiday classics and 8 classical/folk pieces arranged for both hands (Left Hand in Warm Amber, Right Hand in Sapphire Blue), with a toggleable live Sing-Along Lyrics banner and an interactive Full Lyrics Sheet modal.
 - **.wav Recorder**: The top-bar **⏺ Record** button captures your playing (or a self-playing song) to a 16-bit stereo `.wav`; in the desktop app it opens a native Save As dialog.
-- **Single-File Windows `.exe` (`ConcertGrandPiano-v1.1.0.exe`, ~2 MB, needs .NET 10 Desktop Runtime; plus a ~118 MB self-contained `-Standalone.exe` built locally)**: Embeds `index.html` and `lib/three.module.min.js` for 100% offline use, with `F11` fullscreen, `Ctrl + Shift + G` to toggle between the embedded build and live GitHub Pages, remembered window size/position, locked browser chrome, a piano `.ico`, and a `--kiosk` launch mode.
+- **Single-File Windows `.exe` (`ConcertGrandPiano-v1.1.1.exe`, ~2 MB, needs .NET 10 Desktop Runtime; plus a ~118 MB self-contained `-Standalone.exe` built locally)**: Embeds `index.html` and `lib/three.module.min.js` for 100% offline use, with `F11` fullscreen, `Ctrl + Shift + G` to toggle between the embedded build and live GitHub Pages, remembered window size/position, locked browser chrome, a piano `.ico`, and a `--kiosk` launch mode.
 
 See [CLAUDE.md](CLAUDE.md) for detailed architecture and build instructions.

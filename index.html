@@ -194,6 +194,22 @@
       white-space: nowrap;
     }
 
+    /* Responsive top bar: keep every button visible on narrower / high-DPI-scaled windows */
+    .topbar { gap: 10px; }
+    .brand { flex-shrink: 0; }
+    @media (max-width: 1500px) {
+      .brand-sub { display: none; }
+    }
+    @media (max-width: 1180px) {
+      .topbar { padding: 0 10px; }
+      .brand-title { font-size: 1.1rem; letter-spacing: 1px; }
+      .menu-nav { gap: 5px; }
+      .menu-btn { padding: 6px 9px; font-size: 0.78rem; }
+    }
+    @media (max-width: 1020px) {
+      .rec-label { display: none; }
+      .brand-title .holly-accent { display: none; }
+    }
     .menu-btn.recording {
       color: #fff;
       background: rgba(190, 30, 40, 0.85);
@@ -971,7 +987,7 @@
   <header class="topbar">
     <div class="brand">
       <span class="brand-title"><span class="holly-accent">🎄 </span>CONCERT GRAND<span class="holly-accent"> ★</span></span>
-      <span class="version-badge" id="app-version-badge" title="Application Version">v1.1.0</span>
+      <span class="version-badge" id="app-version-badge" title="Application Version">v1.1.1</span>
       <span class="brand-sub">88-Key Physical Modeling Piano</span>
     </div>
 
@@ -1098,7 +1114,7 @@
       <!-- BUILT-IN MANUAL BUTTON -->
       <button class="menu-btn" id="open-manual-btn">Manual / Help</button>
       <!-- NATIVE .WAV RECORDER (Option 4E) -->
-      <button class="menu-btn" id="record-btn" title="Record your playing (or a self-playing song) and save it as a .wav file">⏺ Record</button>
+      <button class="menu-btn" id="record-btn" title="Record your playing (or a self-playing song) and save it as a .wav file">⏺<span class="rec-label"> Record</span></button>
     </nav>
 
     <div class="quick-bar">
@@ -5213,7 +5229,7 @@
     // =========================================================================
     // 13B. DESKTOP SHELL (WEBVIEW2) INTEGRATION & OPTION 1B HYBRID SOURCE SWITCHER
     // =========================================================================
-    const APP_VERSION = 'v1.1.0';
+    const APP_VERSION = 'v1.1.1';
     const versionBadgeEl = document.getElementById('app-version-badge');
     if (versionBadgeEl) versionBadgeEl.textContent = APP_VERSION;
 
@@ -5313,7 +5329,7 @@
       clearInterval(recTimer);
       if (recTapNode) recTapNode.port.postMessage({ on: false });
       recordBtn.classList.remove('recording');
-      recordBtn.textContent = '⏺ Record';
+      recordBtn.innerHTML = '⏺<span class="rec-label"> Record</span>';
       if (recSamples > 0) {
         saveWavBlob(encodeWav(recChunksL, recChunksR, recSamples, audioCtx.sampleRate));
       }

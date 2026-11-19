@@ -11,7 +11,7 @@ namespace ConcertGrandShell;
 
 internal static class Program
 {
-    public const string AppVersion = "v1.1.0";
+    public const string AppVersion = "v1.1.1";
     public const string EmbeddedOriginUrl = "https://concertgrand.app/index.html";
     public const string LiveGitHubUrl = "https://sjpeter88.github.io/Virtual-Piano2/";
 
