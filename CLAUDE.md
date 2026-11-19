@@ -3,7 +3,7 @@
 This repository (`d:\AntiGravityDesktop\Virtual-Piano2`) contains the **Concert Grand 3D Virtual Piano** web application and its **.NET 10 + WebView2** single-file Windows desktop executable wrapper.
 
 ## 1. Key Constraints & Design Rules
-- **No Web Build Tools or External Runtime Fetches**: The web app must remain 100% self-contained in a single [index.html](index.html) file (inline CSS, HTML, and ES module JavaScript) loading Three.js locally from [lib/three.module.min.js](lib/three.module.min.js). Never add external CDN URLs (`http://` or `https://`) for scripts, fonts, textures, or audio samples—everything is synthesized and procedurally generated offline.
+- **No Web Build Tools or External Runtime Fetches**: The web app must remain 100% self-contained in a single [index.html](index.html) file (inline CSS, HTML, and ES module JavaScript) loading Three.js locally from [lib/three.module.min.js](lib/three.module.min.js). Never add external CDN URLs (`http://` or `https://`) for scripts, fonts, textures, or audio samples. Audio and geometry are synthesized procedurally offline; the only non-procedural assets are the photographic room textures in [images/textures/](images/textures), which are embedded into `index.html` as base64 data URIs (see "Textures" below), never fetched at runtime.
 - **Physical-Modeling AudioWorklet**: All piano audio is synthesized inside `WORKLET_PROCESSOR_CODE` (loaded via an inline `Blob` URL into `audioCtx.audioWorklet.addModule`).
 - **Dual Visual Themes (`Christmas` & `Classic Studio`)**: Keep both themes intact and switchable via `toggleVisualTheme()`. In `Classic Studio` mode, `christmasRoomGroup.visible` and `pianoDecorGroup.visible` are `false`, restoring the original dark studio background and camera angle.
 - **Version Numbering Rule**:
@@ -22,6 +22,12 @@ This repository (`d:\AntiGravityDesktop\Virtual-Piano2`) contains the **Concert 
 - `ConcertGrandPiano-v1.1.1.exe` — Framework-dependent single-file executable (~2 MB, needs .NET 10 Desktop Runtime) in the project root.
 - `ConcertGrandPiano-v1.1.1-Standalone.exe` — Self-contained build (~118 MB, no .NET needed). **Git-ignored** because it exceeds GitHub's 100 MB file limit; rebuild locally.
 - v1.1.1 shell features: window size/position/maximized state remembered in `%LOCALAPPDATA%\ConcertGrandPiano\window-state.json`; browser back/forward and off-site navigation blocked (DevTools F12 still available); `--kiosk` launch argument for borderless fullscreen with a floating Minimize/Windowed/Exit pill; native Save As dialog for downloads; **Record** button (top bar) captures the piano output to a 16-bit stereo `.wav` (metronome clicks excluded).
+
+## 2b. Textures
+- Source images (12 seamless JPGs generated with Gemini) live in `images/textures/`: `floor_oak`, `wall_plaster`, `brick_fireplace`, `bookcase_oak`, `pine_needles`, `knit_red`, `knit_green`, `book_spines`, `window_night`, `rug_persian`, `gift_wrap_red`, `gift_wrap_gold`.
+- `tools/embed_textures.py` (needs Pillow) downsizes them and rewrites the `<script id="texture-data">` block in `index.html` (`window.TEXTURE_DATA`, ~1.4 MB). Re-run it after changing any source image: `python tools/embed_textures.py`.
+- In the scene, `roomTex(key, repeatX, repeatY, mirror)` loads a texture; each material keeps a colour tint that multiplies the photo. If a texture is missing the material falls back to its plain tint colour.
+- The Christmas camera is aspect-aware and the 3D canvas is full-bleed behind the toolbars in Christmas mode. Glow/bloom and lacquer reflections are Christmas-only (View menu has a Glow toggle).
 
 ## 3. Common Commands
 
