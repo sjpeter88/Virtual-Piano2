@@ -1076,6 +1076,9 @@
     </nav>
 
     <div class="quick-bar">
+      <button class="menu-btn active" id="quick-theme-btn" title="Switch between Christmas Living Room and Classic Studio Piano">
+        Theme: Christmas
+      </button>
       <button class="menu-btn active" id="toggle-lyrics-btn" title="Show or hide live Sing-Along Lyrics banner">
         Lyrics: ON
       </button>
@@ -4784,11 +4787,14 @@
 
     let activeTheme = userSettings.theme || 'christmas';
     const toggleThemeBtn = document.getElementById('toggle-theme-btn');
+    const quickThemeBtn = document.getElementById('quick-theme-btn');
     function applyVisualTheme() {
       const isXmas = activeTheme === 'christmas';
       document.body.classList.toggle('theme-christmas', isXmas);
       toggleThemeBtn.classList.toggle('active', isXmas);
       toggleThemeBtn.textContent = isXmas ? 'Christmas' : 'Classic Studio';
+      quickThemeBtn.classList.toggle('active', isXmas);
+      quickThemeBtn.textContent = isXmas ? 'Theme: Christmas' : 'Theme: Classic';
       christmasRoomGroup.visible = isXmas;
       pianoDecorGroup.visible = isXmas;
       scene.background.setHex(isXmas ? 0x160c09 : 0x0e0b09);
@@ -4796,12 +4802,15 @@
       scene.fog.density = isXmas ? 0.0014 : 0.0028;
     }
 
-    toggleThemeBtn.addEventListener('click', () => {
+    function toggleVisualTheme() {
       activeTheme = activeTheme === 'christmas' ? 'studio' : 'christmas';
       userSettings.theme = activeTheme;
       saveSettings();
       applyVisualTheme();
-    });
+    }
+
+    toggleThemeBtn.addEventListener('click', toggleVisualTheme);
+    quickThemeBtn.addEventListener('click', toggleVisualTheme);
 
     // Hydrate UI controls from saved localStorage settings
     function applyInitialSettingsToUI() {
