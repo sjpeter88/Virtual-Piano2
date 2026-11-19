@@ -744,6 +744,128 @@
       opacity: 0;
       transform: translate(-50%, -10px);
     }
+
+    /* =========================================================================
+       LIVE SING-ALONG LYRICS BANNER & FULL LYRICS SHEET MODAL
+       ========================================================================= */
+    #lyrics-banner {
+      position: fixed;
+      bottom: 94px;
+      left: 50%;
+      transform: translateX(-50%);
+      min-width: 340px;
+      max-width: min(820px, 92vw);
+      background: linear-gradient(180deg, rgba(24, 18, 15, 0.93) 0%, rgba(14, 11, 9, 0.96) 100%);
+      border: 1px solid var(--border-gold);
+      border-radius: 12px;
+      padding: 10px 22px;
+      text-align: center;
+      z-index: 175;
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.78);
+      backdrop-filter: blur(8px);
+      pointer-events: auto;
+      transition: opacity 0.25s ease, transform 0.25s ease;
+    }
+
+    #lyrics-banner.hidden {
+      opacity: 0;
+      pointer-events: none;
+      transform: translate(-50%, 10px);
+    }
+
+    .lyrics-current-line {
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 1.14rem;
+      font-weight: 600;
+      color: var(--gold-bright);
+      letter-spacing: 0.4px;
+      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9);
+      margin-bottom: 3px;
+    }
+
+    .lyrics-next-line {
+      font-size: 0.82rem;
+      color: var(--text-dim);
+      font-style: italic;
+    }
+
+    .song-filter-bar {
+      display: flex;
+      gap: 6px;
+      padding: 8px 14px;
+      border-bottom: 1px solid rgba(212, 175, 110, 0.16);
+      background: rgba(0, 0, 0, 0.2);
+    }
+
+    .filter-tab {
+      flex: 1;
+      text-align: center;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(212, 175, 110, 0.22);
+      color: var(--text-dim);
+      border-radius: 5px;
+      padding: 5px 6px;
+      font-size: 0.74rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.14s ease;
+    }
+
+    .filter-tab:hover {
+      color: var(--text-main);
+      border-color: var(--gold);
+    }
+
+    .filter-tab.active {
+      background: var(--gold);
+      color: #15100c;
+      border-color: var(--gold-bright);
+    }
+
+    #lyrics-sheet-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.72);
+      z-index: 350;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      backdrop-filter: blur(5px);
+    }
+
+    #lyrics-sheet-backdrop.open {
+      display: flex;
+    }
+
+    .lyrics-verse-block {
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px dashed rgba(212, 175, 110, 0.18);
+    }
+
+    .lyrics-verse-block:last-child {
+      border-bottom: none;
+    }
+
+    .lyrics-line-item {
+      padding: 4px 8px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.15s ease, color 0.15s ease;
+      font-family: Georgia, serif;
+      font-size: 0.96rem;
+    }
+
+    .lyrics-line-item:hover {
+      background: rgba(216, 181, 120, 0.12);
+    }
+
+    .lyrics-line-item.active-lyric {
+      background: rgba(216, 181, 120, 0.24);
+      color: var(--gold-bright);
+      font-weight: 600;
+    }
   </style>
 </head>
 <body>
@@ -804,6 +926,10 @@
             <button class="btn-sm active" id="toggle-labels-btn">ON</button>
           </div>
           <div class="field-row">
+            <label>Sing-Along Lyrics Display</label>
+            <button class="btn-sm active" id="toggle-lyrics-menu-btn">ON</button>
+          </div>
+          <div class="field-row">
             <label>Camera Preset</label>
             <button class="btn-sm" id="reset-view-btn">Reset Full 88-Key View</button>
           </div>
@@ -862,13 +988,16 @@
       </div>
 
       <!-- SONG LIBRARY BUTTON -->
-      <button class="menu-btn" id="open-songs-btn">Song Library (10)</button>
+      <button class="menu-btn" id="open-songs-btn">Song Library (26)</button>
 
       <!-- BUILT-IN MANUAL BUTTON -->
       <button class="menu-btn" id="open-manual-btn">Manual / Help</button>
     </nav>
 
     <div class="quick-bar">
+      <button class="menu-btn active" id="toggle-lyrics-btn" title="Show or hide live Sing-Along Lyrics banner">
+        Lyrics: ON
+      </button>
       <button class="menu-btn" id="sustain-btn" title="Hold Spacebar or click to toggle Sustain Pedal">
         Sustain: OFF
       </button>
@@ -913,17 +1042,28 @@
   <!-- Floating Audio Start Prompt -->
   <div id="audio-prompt">Click any piano key or press any key to start AudioWorklet sound engine</div>
 
+  <!-- Live Synchronized Sing-Along Lyrics Banner -->
+  <div id="lyrics-banner" title="Click 'Lyrics Sheet' in the player bar to view all verses">
+    <div class="lyrics-current-line" id="lyrics-current-text">♪ Select a song &amp; press Play for synchronized lyrics ♪</div>
+    <div class="lyrics-next-line" id="lyrics-next-text">Toggle Lyrics ON/OFF anytime from the top bar or player bar</div>
+  </div>
+
   <!-- 3D Viewport -->
   <main id="canvas-container"></main>
 
   <!-- =========================================================================
-       SLIDE-OUT SONG LIBRARY PANEL (10 Public-Domain Pieces)
+       SLIDE-OUT SONG LIBRARY PANEL (26 Complete Public-Domain Pieces)
        ========================================================================= -->
   <div id="song-drawer-backdrop"></div>
   <aside id="song-drawer" aria-label="Song Library">
     <div class="drawer-header">
       <h2>Public Domain Song Library</h2>
       <button class="btn-sm" id="close-songs-btn" title="Close (Esc)">✕ Close</button>
+    </div>
+    <div class="song-filter-bar">
+      <button class="filter-tab active" data-filter="all">All (26)</button>
+      <button class="filter-tab" data-filter="christmas">Christmas &amp; Holiday (18)</button>
+      <button class="filter-tab" data-filter="classical">Classical &amp; Folk (8)</button>
     </div>
     <div class="hand-legend">
       <span class="legend-swatch">
@@ -935,6 +1075,19 @@
     </div>
     <div class="song-list" id="song-list-container"></div>
   </aside>
+
+  <!-- =========================================================================
+       FULL LYRICS SHEET MODAL (Click any line to jump to that point in the song)
+       ========================================================================= -->
+  <div id="lyrics-sheet-backdrop">
+    <div class="manual-modal" role="dialog" aria-modal="true" aria-labelledby="lyrics-sheet-title">
+      <div class="manual-header">
+        <h2 id="lyrics-sheet-title">Song Lyrics Sheet</h2>
+        <button class="btn-sm" id="close-lyrics-sheet-btn">✕ Close (Esc)</button>
+      </div>
+      <div class="manual-body" id="lyrics-sheet-body"></div>
+    </div>
+  </div>
 
   <!-- =========================================================================
        BUILT-IN MANUAL MODAL (Scrollable Help Page)
@@ -1008,10 +1161,11 @@
           <li><strong>Metronome:</strong> Toggle the metronome from the practice bar and adjust BPM (40–208) and time signature in the <strong>Practice</strong> menu.</li>
         </ul>
 
-        <h3>5. Self-Playing Public-Domain Song Library</h3>
+        <h3>5. Self-Playing Public-Domain Song Library &amp; Synchronized Lyrics</h3>
         <ul>
-          <li>Open <strong>Song Library (10)</strong> to choose from 10 public-domain classics arranged for two hands.</li>
+          <li>Open <strong>Song Library (26)</strong> to choose from <strong>26 complete public-domain classics &amp; Christmas carols</strong> arranged for two hands (filter by <em>All</em>, <em>Christmas &amp; Holiday</em>, or <em>Classical &amp; Folk</em>).</li>
           <li>During playback, <strong>Left-Hand</strong> notes glow in <strong>Warm Amber</strong> and <strong>Right-Hand</strong> notes glow in <strong>Sapphire Blue</strong>.</li>
+          <li><strong>Sing-Along Lyrics &amp; Full Lyrics Sheet:</strong> Toggle the live synchronized lyrics banner ON or OFF with the <strong>Lyrics: ON/OFF</strong> button in the top bar (or inside the <strong>View</strong> menu). Click <strong>Lyrics Sheet</strong> in the bottom player bar to open the full multi-verse lyrics modal—clicking any line jumps playback straight to that phrase!</li>
           <li>Use the bottom player bar to <strong>Play/Pause</strong>, <strong>Stop</strong>, toggle <strong>Loop</strong>, adjust playback speed from <strong>50% to 150%</strong>, or click anywhere on the progress bar to jump to that point.</li>
         </ul>
       </div>
@@ -1028,6 +1182,7 @@
         <button class="btn-sm" id="player-play-btn" title="Play / Pause selected song">▶ Play</button>
         <button class="btn-sm" id="player-stop-btn" title="Stop song and reset to start">■ Stop</button>
         <button class="btn-sm" id="player-loop-btn" title="Loop song playback">⟳ Loop: OFF</button>
+        <button class="btn-sm" id="open-lyrics-sheet-btn" title="Open Full Lyrics Sheet (click any line to jump)">📜 Lyrics Sheet</button>
       </div>
 
       <div class="now-playing-label" id="now-playing-title">Song: Für Elise (Beethoven)</div>
@@ -1084,6 +1239,7 @@
       zoom: 100,
       scroll: 0,
       showLabels: true,
+      showLyrics: true,
       octave: 4,
       scaleRoot: 0,
       scaleMode: 'none',
@@ -1091,7 +1247,7 @@
       metroMeter: 4,
       songTempo: 100,
       songLoop: false,
-      selectedSongId: 'fur_elise'
+      selectedSongId: 'joy_to_the_world'
     };
 
     let userSettings = { ...defaultSettings };
@@ -1177,343 +1333,1255 @@
     }
 
     // =========================================================================
-    // 2. PUBLIC-DOMAIN SONG LIBRARY (10 Classics with Both Hands: L & R)
+    // 2. PUBLIC-DOMAIN SONG LIBRARY (26 Full Songs with Both Hands & Synced Lyrics)
     // =========================================================================
-    // Helper to build compact note objects: [timeInBeats, midi, durationInBeats, velocity, hand]
     function buildSongNotes(tuples) {
       return tuples.map(([time, midi, duration, velocity, hand]) => ({
-        time,
-        midi,
-        duration,
-        velocity,
-        hand
+        time, midi, duration, velocity, hand
       }));
     }
 
+    // Expands a single-verse note array into a full multi-verse song and attaches beat-synced lyrics
+    function createStrophicSong({ id, title, composer, category, bpm, verseBeats, baseNotes, verses }) {
+      const numVerses = Math.max(1, verses ? verses.length : 2);
+      const allNotes = [];
+      for (let v = 0; v < numVerses; v++) {
+        const offset = v * verseBeats;
+        for (let i = 0; i < baseNotes.length; i++) {
+          const [t, m, d, vel, h] = baseNotes[i];
+          allNotes.push({ time: t + offset, midi: m, duration: d, velocity: vel, hand: h });
+        }
+      }
+      const lyrics = [];
+      if (verses && verses.length > 0) {
+        for (let v = 0; v < verses.length; v++) {
+          const offset = v * verseBeats;
+          for (const [relBeat, text] of verses[v]) {
+            lyrics.push({ time: offset + relBeat, text, verse: v + 1 });
+          }
+        }
+      }
+      return { id, title, composer, category, bpm, notes: allNotes, lyrics };
+    }
+
     const PUBLIC_DOMAIN_SONGS = [
-      {
-        id: 'fur_elise',
-        title: 'Für Elise (Opening)',
-        composer: 'Ludwig van Beethoven (1810)',
-        bpm: 126,
-        notes: buildSongNotes([
-          // Pickup & Bar 1-2 Right Hand E5-D#5-E5-D#5-E5-B4-D5-C5-A4 + Left Hand A2-E3-A3 arpeggio
-          [0.0, 76, 0.45, 0.72, 'R'], [0.5, 75, 0.45, 0.70, 'R'],
-          [1.0, 76, 0.45, 0.74, 'R'], [1.5, 75, 0.45, 0.72, 'R'], [2.0, 76, 0.45, 0.76, 'R'],
-          [2.5, 71, 0.45, 0.74, 'R'], [3.0, 74, 0.45, 0.75, 'R'], [3.5, 72, 0.45, 0.72, 'R'],
-          [4.0, 69, 1.40, 0.78, 'R'],
-          [4.0, 45, 1.40, 0.66, 'L'], [4.5, 52, 1.00, 0.62, 'L'], [5.0, 57, 0.90, 0.64, 'L'],
-          [5.5, 60, 0.45, 0.70, 'R'], [6.0, 64, 0.45, 0.72, 'R'], [6.5, 69, 0.45, 0.76, 'R'],
-          [7.0, 71, 1.40, 0.78, 'R'],
-          [7.0, 40, 1.40, 0.66, 'L'], [7.5, 52, 1.00, 0.62, 'L'], [8.0, 56, 0.90, 0.64, 'L'],
-          [8.5, 64, 0.45, 0.70, 'R'], [9.0, 68, 0.45, 0.74, 'R'], [9.5, 71, 0.45, 0.76, 'R'],
-          [10.0, 72, 1.40, 0.80, 'R'],
-          [10.0, 45, 1.40, 0.66, 'L'], [10.5, 52, 1.00, 0.62, 'L'], [11.0, 57, 0.90, 0.64, 'L'],
-          [11.5, 64, 0.45, 0.70, 'R'],
+      // -----------------------------------------------------------------------
+      // 1. JOY TO THE WORLD (Isaac Watts, 1719 / George Frideric Handel)
+      // -----------------------------------------------------------------------
+      createStrophicSong({
+        id: 'joy_to_the_world',
+        title: 'Joy to the World',
+        composer: 'G.F. Handel / Lowell Mason (1839)',
+        category: 'christmas',
+        bpm: 112,
+        verseBeats: 32,
+        baseNotes: [
+          // Joy to the world, the Lord is come! (8 beats)
+          [0,72,0.95,0.86,'R'],[0,48,1.9,0.74,'L'],[0,55,1.9,0.70,'L'],
+          [1,71,0.70,0.82,'R'],[1.75,69,0.22,0.78,'R'],
+          [2,67,1.40,0.84,'R'],[2,48,1.9,0.72,'L'],[2,52,1.9,0.68,'L'],[3.5,65,0.45,0.78,'R'],
+          [4,64,0.95,0.82,'R'],[4,41,1.9,0.72,'L'],[4,53,1.9,0.68,'L'],[5,62,0.95,0.80,'R'],
+          [6,60,1.85,0.88,'R'],[6,48,1.9,0.76,'L'],[6,55,1.9,0.72,'L'],
+          // Let earth receive her King (8 beats)
+          [7.5,67,0.45,0.80,'R'],
+          [8,69,1.40,0.84,'R'],[8,41,1.9,0.72,'L'],[8,53,1.9,0.68,'L'],[9.5,69,0.45,0.82,'R'],
+          [10,71,1.40,0.86,'R'],[10,43,1.9,0.72,'L'],[10,55,1.9,0.68,'L'],[11.5,71,0.45,0.82,'R'],
+          [12,72,2.80,0.88,'R'],[12,48,2.9,0.76,'L'],[12,55,2.9,0.72,'L'],
+          // Let ev'ry heart prepare Him room (8 beats)
+          [15,72,0.45,0.82,'R'],[15.5,72,0.45,0.82,'R'],
+          [16,71,0.45,0.80,'R'],[16,48,1.9,0.72,'L'],[16,55,1.9,0.68,'L'],[16.5,69,0.45,0.78,'R'],
+          [17,67,0.45,0.80,'R'],[17.5,67,0.22,0.78,'R'],[17.75,65,0.22,0.76,'R'],[18,64,0.95,0.80,'R'],
+          [18,48,1.9,0.72,'L'],[18,52,1.9,0.68,'L'],
+          [19,72,0.45,0.82,'R'],[19.5,72,0.45,0.82,'R'],
+          [20,71,0.45,0.80,'R'],[20,48,1.9,0.72,'L'],[20,55,1.9,0.68,'L'],[20.5,69,0.45,0.78,'R'],
+          [21,67,0.45,0.80,'R'],[21.5,67,0.22,0.78,'R'],[21.75,65,0.22,0.76,'R'],[22,64,0.95,0.80,'R'],
+          // And heav'n and nature sing (8 beats)
+          [23,64,0.45,0.78,'R'],[23.5,64,0.45,0.78,'R'],
+          [24,64,0.45,0.80,'R'],[24,48,1.9,0.72,'L'],[24,52,1.9,0.68,'L'],[24.5,64,0.22,0.78,'R'],[24.75,65,0.22,0.80,'R'],
+          [25,67,1.40,0.84,'R'],[26.5,65,0.22,0.78,'R'],[26.75,64,0.22,0.78,'R'],
+          [27,62,0.45,0.80,'R'],[27,43,1.9,0.74,'L'],[27,55,1.9,0.70,'L'],[27.5,62,0.45,0.80,'R'],
+          [28,62,0.45,0.80,'R'],[28.5,62,0.22,0.78,'R'],[28.75,64,0.22,0.80,'R'],
+          [29,65,0.95,0.86,'R'],[29,43,0.95,0.74,'L'],[30,64,0.45,0.82,'R'],[30.5,62,0.45,0.80,'R'],
+          [31,60,1.0,0.90,'R'],[31,48,1.0,0.80,'L'],[31,55,1.0,0.76,'L']
+        ],
+        verses: [
+          [
+            [0, 'Verse 1: Joy to the world, the Lord is come!'],
+            [7.5, 'Let earth receive her King;'],
+            [15, "Let ev'ry heart prepare Him room,"],
+            [23, "And heav'n and nature sing, and heav'n and nature sing!"]
+          ],
+          [
+            [0, 'Verse 2: Joy to the earth, the Savior reigns!'],
+            [7.5, 'Let men their songs employ;'],
+            [15, 'While fields and floods, rocks, hills, and plains,'],
+            [23, 'Repeat the sounding joy, repeat the sounding joy!']
+          ],
+          [
+            [0, 'Verse 3: He rules the world with truth and grace,'],
+            [7.5, 'And makes the nations prove'],
+            [15, 'The glories of His righteousness,'],
+            [23, 'And wonders of His love, and wonders of His love!']
+          ]
+        ]
+      }),
+
+      // -----------------------------------------------------------------------
+      // 2. DECK THE HALLS (Traditional Welsh Carol, 1862)
+      // -----------------------------------------------------------------------
+      createStrophicSong({
+        id: 'deck_the_halls',
+        title: 'Deck the Halls',
+        composer: 'Traditional 16th-Century Welsh Carol (Nos Galan)',
+        category: 'christmas',
+        bpm: 128,
+        verseBeats: 32,
+        baseNotes: [
+          // A1: Deck the halls with boughs of holly, Fa la la la la, la la la la
+          [0,67,0.70,0.84,'R'],[0,48,1.9,0.72,'L'],[0,55,1.9,0.68,'L'],[0.75,65,0.22,0.78,'R'],
+          [1,64,0.45,0.80,'R'],[1.5,62,0.45,0.78,'R'],
+          [2,60,0.45,0.80,'R'],[2,48,1.9,0.70,'L'],[2,52,1.9,0.66,'L'],[2.5,62,0.45,0.80,'R'],
+          [3,64,0.45,0.82,'R'],[3.5,60,0.45,0.78,'R'],
+          [4,62,0.35,0.82,'R'],[4,43,1.9,0.72,'L'],[4,55,1.9,0.68,'L'],[4.4,64,0.35,0.82,'R'],[4.8,65,0.35,0.84,'R'],[5.2,62,0.35,0.80,'R'],
+          [5.6,64,0.65,0.84,'R'],[6.35,62,0.25,0.78,'R'],
+          [6.7,60,0.45,0.82,'R'],[6.7,48,1.2,0.74,'L'],[7.15,59,0.40,0.78,'R'],[7.6,60,0.40,0.86,'R'],
+          // A2: 'Tis the season to be jolly, Fa la la la la, la la la la
+          [8,67,0.70,0.84,'R'],[8,48,1.9,0.72,'L'],[8,55,1.9,0.68,'L'],[8.75,65,0.22,0.78,'R'],
+          [9,64,0.45,0.80,'R'],[9.5,62,0.45,0.78,'R'],
+          [10,60,0.45,0.80,'R'],[10,48,1.9,0.70,'L'],[10,52,1.9,0.66,'L'],[10.5,62,0.45,0.80,'R'],
+          [11,64,0.45,0.82,'R'],[11.5,60,0.45,0.78,'R'],
+          [12,62,0.35,0.82,'R'],[12,43,1.9,0.72,'L'],[12,55,1.9,0.68,'L'],[12.4,64,0.35,0.82,'R'],[12.8,65,0.35,0.84,'R'],[13.2,62,0.35,0.80,'R'],
+          [13.6,64,0.65,0.84,'R'],[14.35,62,0.25,0.78,'R'],
+          [14.7,60,0.45,0.82,'R'],[14.7,48,1.2,0.74,'L'],[15.15,59,0.40,0.78,'R'],[15.6,60,0.40,0.86,'R'],
+          // B: Don we now our gay apparel, Fa la la, la la la, la la la
+          [16,62,0.70,0.82,'R'],[16,43,1.9,0.72,'L'],[16,55,1.9,0.68,'L'],[16.75,64,0.22,0.80,'R'],
+          [17,65,0.45,0.82,'R'],[17.5,62,0.45,0.78,'R'],
+          [18,64,0.70,0.84,'R'],[18,48,1.9,0.72,'L'],[18,55,1.9,0.68,'L'],[18.75,65,0.22,0.82,'R'],
+          [19,67,0.45,0.84,'R'],[19.5,62,0.45,0.78,'R'],
+          [20,64,0.35,0.82,'R'],[20,45,1.9,0.72,'L'],[20.4,66,0.35,0.82,'R'],[20.8,67,0.45,0.84,'R'],
+          [21.3,69,0.35,0.84,'R'],[21.7,71,0.35,0.86,'R'],[22.1,72,0.45,0.88,'R'],
+          [22.6,71,0.45,0.84,'R'],[22.6,50,1.2,0.72,'L'],[23.1,69,0.40,0.82,'R'],[23.55,67,0.40,0.84,'R'],
+          // A3: Troll the ancient Yuletide carol, Fa la la la la, la la la la
+          [24,67,0.70,0.86,'R'],[24,48,1.9,0.74,'L'],[24,55,1.9,0.70,'L'],[24.75,65,0.22,0.80,'R'],
+          [25,64,0.45,0.82,'R'],[25.5,62,0.45,0.80,'R'],
+          [26,60,0.45,0.82,'R'],[26,48,1.9,0.72,'L'],[26,52,1.9,0.68,'L'],[26.5,62,0.45,0.80,'R'],
+          [27,64,0.45,0.82,'R'],[27.5,60,0.45,0.78,'R'],
+          [28,69,0.35,0.86,'R'],[28,41,1.9,0.74,'L'],[28,53,1.9,0.70,'L'],[28.4,69,0.35,0.86,'R'],[28.8,69,0.35,0.86,'R'],[29.2,69,0.35,0.86,'R'],
+          [29.6,67,0.65,0.86,'R'],[29.6,43,1.2,0.74,'L'],[30.35,65,0.25,0.82,'R'],
+          [30.7,64,0.45,0.84,'R'],[31.15,62,0.40,0.82,'R'],[31.6,60,0.40,0.90,'R'],[31.6,48,0.40,0.78,'L']
+        ],
+        verses: [
+          [
+            [0, 'Verse 1: Deck the halls with boughs of holly, Fa-la-la-la-la, la-la-la-la!'],
+            [8, "'Tis the season to be jolly, Fa-la-la-la-la, la-la-la-la!"],
+            [16, 'Don we now our gay apparel, Fa-la-la, la-la-la, la-la-la!'],
+            [24, 'Troll the ancient Yuletide carol, Fa-la-la-la-la, la-la-la-la!']
+          ],
+          [
+            [0, 'Verse 2: See the blazing Yule before us, Fa-la-la-la-la, la-la-la-la!'],
+            [8, 'Strike the harp and join the chorus, Fa-la-la-la-la, la-la-la-la!'],
+            [16, 'Follow me in merry measure, Fa-la-la, la-la-la, la-la-la!'],
+            [24, 'While I tell of Yuletide treasure, Fa-la-la-la-la, la-la-la-la!']
+          ],
+          [
+            [0, 'Verse 3: Fast away the old year passes, Fa-la-la-la-la, la-la-la-la!'],
+            [8, 'Hail the new, ye lads and lasses, Fa-la-la-la-la, la-la-la-la!'],
+            [16, 'Sing we joyous all together, Fa-la-la, la-la-la, la-la-la!'],
+            [24, 'Heedless of the wind and weather, Fa-la-la-la-la, la-la-la-la!']
+          ]
+        ]
+      }),
+
+      // -----------------------------------------------------------------------
+      // 3. WE WISH YOU A MERRY CHRISTMAS (Traditional 16th-Century English)
+      // -----------------------------------------------------------------------
+      createStrophicSong({
+        id: 'we_wish_you_a_merry_christmas',
+        title: 'We Wish You a Merry Christmas',
+        composer: 'Traditional 16th-Century English Carol',
+        category: 'christmas',
+        bpm: 132,
+        verseBeats: 48,
+        baseNotes: [
+          // Pickup + Verse (24 beats in 3/4)
+          [0,62,0.9,0.80,'R'],
+          [1,67,0.9,0.84,'R'],[1,43,2.8,0.72,'L'],[2,55,1.8,0.68,'L'],[2,67,0.45,0.82,'R'],[2.5,69,0.45,0.84,'R'],
+          [3,67,0.45,0.82,'R'],[3.5,66,0.45,0.80,'R'],
+          [4,64,0.9,0.82,'R'],[4,48,2.8,0.72,'L'],[5,55,1.8,0.68,'L'],[5,64,0.9,0.82,'R'],[6,64,0.9,0.82,'R'],
+          [7,69,0.9,0.86,'R'],[7,45,2.8,0.72,'L'],[8,57,1.8,0.68,'L'],[8,69,0.45,0.84,'R'],[8.5,71,0.45,0.86,'R'],
+          [9,69,0.45,0.84,'R'],[9.5,67,0.45,0.82,'R'],
+          [10,66,0.9,0.82,'R'],[10,50,2.8,0.72,'L'],[11,57,1.8,0.68,'L'],[11,62,0.9,0.78,'R'],[12,62,0.9,0.78,'R'],
+          [13,71,0.9,0.88,'R'],[13,47,2.8,0.74,'L'],[14,59,1.8,0.68,'L'],[14,71,0.45,0.86,'R'],[14.5,72,0.45,0.88,'R'],
+          [15,71,0.45,0.86,'R'],[15.5,69,0.45,0.84,'R'],
+          [16,67,0.9,0.84,'R'],[16,52,2.8,0.72,'L'],[17,64,0.9,0.82,'R'],[18,62,0.45,0.80,'R'],[18.5,62,0.45,0.80,'R'],
+          [19,64,0.9,0.82,'R'],[19,48,1.8,0.72,'L'],[20,69,0.9,0.84,'R'],[21,66,0.9,0.82,'R'],[21,50,0.9,0.70,'L'],
+          [22,67,1.8,0.88,'R'],[22,43,2.4,0.76,'L'],[22,55,2.4,0.72,'L'],
+          // Chorus: Good tidings we bring to you and your kin (24 beats)
+          [24,62,0.9,0.80,'R'],
+          [25,67,0.9,0.84,'R'],[25,43,2.8,0.72,'L'],[26,67,0.9,0.84,'R'],[27,67,0.9,0.84,'R'],
+          [28,66,1.8,0.84,'R'],[28,50,2.8,0.72,'L'],[30,66,0.9,0.82,'R'],
+          [31,67,0.9,0.84,'R'],[31,43,2.8,0.72,'L'],[32,66,0.9,0.82,'R'],[33,64,0.9,0.80,'R'],
+          [34,62,1.8,0.82,'R'],[34,50,2.8,0.72,'L'],[36,69,0.9,0.86,'R'],
+          [37,71,0.9,0.88,'R'],[37,43,2.8,0.74,'L'],[38,69,0.45,0.84,'R'],[38.5,69,0.45,0.84,'R'],
+          [39,67,0.45,0.82,'R'],[39.5,67,0.45,0.82,'R'],
+          [40,74,0.9,0.90,'R'],[40,50,2.8,0.74,'L'],[41,62,0.9,0.80,'R'],[42,62,0.45,0.80,'R'],[42.5,62,0.45,0.80,'R'],
+          [43,64,0.9,0.82,'R'],[43,48,1.8,0.72,'L'],[44,69,0.9,0.84,'R'],[45,66,0.9,0.82,'R'],[45,50,0.9,0.70,'L'],
+          [46,67,1.8,0.90,'R'],[46,43,1.8,0.78,'L'],[46,55,1.8,0.74,'L']
+        ],
+        verses: [
+          [
+            [0, 'Verse 1: We wish you a Merry Christmas, We wish you a Merry Christmas,'],
+            [13, 'We wish you a Merry Christmas and a Happy New Year!'],
+            [24, 'Good tidings we bring to you and your kin;'],
+            [36, 'We wish you a Merry Christmas and a Happy New Year!']
+          ],
+          [
+            [0, 'Verse 2: Oh, bring us some figgy pudding, Oh, bring us some figgy pudding,'],
+            [13, 'Oh, bring us some figgy pudding, and bring it right here!'],
+            [24, 'Good tidings we bring to you and your kin;'],
+            [36, 'We wish you a Merry Christmas and a Happy New Year!']
+          ],
+          [
+            [0, "Verse 3: We won't go until we get some, We won't go until we get some,"],
+            [13, "We won't go until we get some, so bring some out here!"],
+            [24, 'Good tidings we bring to you and your kin;'],
+            [36, 'We wish you a Merry Christmas and a Happy New Year!']
+          ]
+        ]
+      }),
+
+      // -----------------------------------------------------------------------
+      // 4. HARK! THE HERALD ANGELS SING (Charles Wesley / Felix Mendelssohn)
+      // -----------------------------------------------------------------------
+      createStrophicSong({
+        id: 'hark_the_herald',
+        title: 'Hark! The Herald Angels Sing',
+        composer: 'Charles Wesley (1739) / Felix Mendelssohn (1840)',
+        category: 'christmas',
+        bpm: 112,
+        verseBeats: 40,
+        baseNotes: [
+          // Phrase 1: Hark! the herald angels sing, Glory to the newborn King
+          [0,60,0.9,0.80,'R'],[0,41,1.9,0.72,'L'],[0,53,1.9,0.68,'L'],[1,65,0.9,0.84,'R'],
+          [2,65,1.4,0.84,'R'],[2,41,1.9,0.72,'L'],[3.5,64,0.45,0.80,'R'],
+          [4,65,0.9,0.84,'R'],[4,41,1.9,0.72,'L'],[5,69,0.9,0.86,'R'],
+          [6,69,0.9,0.84,'R'],[6,48,1.9,0.72,'L'],[7,67,0.9,0.82,'R'],
+          [8,72,0.9,0.88,'R'],[8,53,1.9,0.74,'L'],[9,72,0.9,0.88,'R'],
+          [10,72,1.4,0.88,'R'],[10,46,1.9,0.72,'L'],[11.5,70,0.45,0.84,'R'],
+          [12,69,0.9,0.86,'R'],[12,48,1.9,0.72,'L'],[13,67,0.9,0.82,'R'],
+          [14,69,1.8,0.88,'R'],[14,41,1.9,0.76,'L'],[14,53,1.9,0.72,'L'],
+          // Phrase 2: Peace on earth and mercy mild, God and sinners reconciled
+          [16,60,0.9,0.80,'R'],[16,41,1.9,0.72,'L'],[17,65,0.9,0.84,'R'],
+          [18,65,1.4,0.84,'R'],[18,41,1.9,0.72,'L'],[19.5,64,0.45,0.80,'R'],
+          [20,65,0.9,0.84,'R'],[20,45,1.9,0.72,'L'],[21,69,0.9,0.86,'R'],
+          [22,69,0.9,0.84,'R'],[22,50,1.9,0.72,'L'],[23,64,0.9,0.80,'R'],
+          [24,69,0.9,0.86,'R'],[24,45,1.9,0.72,'L'],[25,66,0.9,0.82,'R'],
+          [26,66,1.4,0.82,'R'],[26,50,1.9,0.72,'L'],[27.5,64,0.45,0.80,'R'],
+          [28,62,0.9,0.80,'R'],[28,43,1.9,0.72,'L'],[29,64,0.9,0.82,'R'],
+          [30,60,1.8,0.84,'R'],[30,48,1.9,0.74,'L'],
+          // Refrain: Hark! the herald angels sing, Glory to the newborn King!
+          [32,74,0.9,0.88,'R'],[32,46,1.9,0.74,'L'],[33,74,0.9,0.88,'R'],
+          [34,74,0.9,0.88,'R'],[34,41,1.9,0.74,'L'],[35,69,0.9,0.84,'R'],
+          [36,72,0.9,0.86,'R'],[36,48,1.9,0.74,'L'],[37,70,0.45,0.84,'R'],[37.5,67,0.45,0.82,'R'],
+          [38,65,1.9,0.90,'R'],[38,41,1.9,0.78,'L'],[38,53,1.9,0.74,'L']
+        ],
+        verses: [
+          [
+            [0, "Verse 1: Hark! the herald angels sing, 'Glory to the newborn King!"],
+            [16, 'Peace on earth, and mercy mild, God and sinners reconciled!'],
+            [32, "Hark! the herald angels sing, 'Glory to the newborn King!'"]
+          ],
+          [
+            [0, 'Verse 2: Christ, by highest heav’n adored; Christ, the everlasting Lord!'],
+            [16, 'Veiled in flesh the Godhead see; Hail th’incarnate Deity!'],
+            [32, "Hark! the herald angels sing, 'Glory to the newborn King!'"]
+          ],
+          [
+            [0, 'Verse 3: Hail the heav’n-born Prince of Peace! Hail the Sun of Righteousness!'],
+            [16, 'Light and life to all He brings, Ris’n with healing in His wings.'],
+            [32, "Hark! the herald angels sing, 'Glory to the newborn King!'"]
+          ]
+        ]
+      }),
+
+      // -----------------------------------------------------------------------
+      // 5. O COME, ALL YE FAITHFUL (John Francis Wade, 1743)
+      // -----------------------------------------------------------------------
+      createStrophicSong({
+        id: 'o_come_all_ye_faithful',
+        title: 'O Come, All Ye Faithful (Adeste Fideles)',
+        composer: 'John Francis Wade (1743) / Frederick Oakeley (1841)',
+        category: 'christmas',
+        bpm: 104,
+        verseBeats: 40,
+        baseNotes: [
+          // O come, all ye faithful, joyful and triumphant
+          [0,67,0.9,0.84,'R'],[1,67,1.9,0.86,'R'],[1,43,1.9,0.74,'L'],[1,55,1.9,0.70,'L'],
+          [3,62,0.9,0.80,'R'],[4,67,0.9,0.84,'R'],
+          [5,69,1.9,0.86,'R'],[5,50,1.9,0.74,'L'],[7,62,1.9,0.80,'R'],
+          [9,71,0.9,0.86,'R'],[9,43,1.9,0.74,'L'],[10,69,0.9,0.84,'R'],
+          [11,71,0.9,0.86,'R'],[12,72,0.9,0.88,'R'],
+          [13,71,1.9,0.86,'R'],[13,50,1.9,0.74,'L'],[15,69,1.8,0.84,'R'],
+          // O come ye, O come ye to Bethlehem
+          [17,67,0.9,0.82,'R'],[18,67,1.9,0.84,'R'],[18,52,1.9,0.72,'L'],
+          [20,66,0.9,0.80,'R'],[21,64,0.9,0.80,'R'],
+          [22,66,0.9,0.82,'R'],[22,50,1.9,0.72,'L'],[23,67,0.9,0.84,'R'],
+          [24,69,0.9,0.86,'R'],[25,71,0.9,0.86,'R'],
+          [26,66,1.9,0.82,'R'],[26,45,1.9,0.72,'L'],[28,64,1.4,0.80,'R'],[29.5,62,0.45,0.78,'R'],
+          [30,62,1.9,0.84,'R'],[30,50,1.9,0.74,'L'],
+          // O come, let us adore Him, Christ the Lord!
+          [32,74,1.9,0.88,'R'],[32,43,1.9,0.74,'L'],[34,72,0.9,0.86,'R'],[35,71,0.9,0.86,'R'],
+          [36,72,0.9,0.86,'R'],[36,48,1.9,0.74,'L'],[37,71,0.9,0.84,'R'],
+          [38,69,0.9,0.84,'R'],[38,50,0.9,0.74,'L'],
+          [39,67,1.0,0.90,'R'],[39,43,1.0,0.78,'L'],[39,55,1.0,0.74,'L']
+        ],
+        verses: [
+          [
+            [0, 'Verse 1: O come, all ye faithful, joyful and triumphant,'],
+            [17, 'O come ye, O come ye to Bethlehem;'],
+            [32, 'O come, let us adore Him, Christ the Lord!']
+          ],
+          [
+            [0, 'Verse 2: Sing, choirs of angels, sing in exultation,'],
+            [17, 'Sing, all ye citizens of heav’n above!'],
+            [32, 'O come, let us adore Him, Christ the Lord!']
+          ],
+          [
+            [0, 'Verse 3: Yea, Lord, we greet Thee, born this happy morning,'],
+            [17, 'Jesus, to Thee be all glory giv’n!'],
+            [32, 'O come, let us adore Him, Christ the Lord!']
+          ]
+        ]
+      }),
+
+      // -----------------------------------------------------------------------
+      // 6. O HOLY NIGHT (Adolphe Adam, 1847)
+      // -----------------------------------------------------------------------
+      createStrophicSong({
+        id: 'o_holy_night',
+        title: 'O Holy Night (Cantique de Noël)',
+        composer: 'Adolphe Adam (1847) / John Sullivan Dwight (1855)',
+        category: 'christmas',
+        bpm: 86,
+        verseBeats: 36,
+        baseNotes: [
+          // O holy night, the stars are brightly shining
+          [0,64,1.4,0.80,'R'],[0,48,2.8,0.70,'L'],[1,55,1.8,0.66,'L'],[1.5,64,0.45,0.80,'R'],[2,64,0.9,0.82,'R'],
+          [3,67,1.9,0.86,'R'],[3,48,2.8,0.70,'L'],[4,55,1.8,0.66,'L'],[5,67,0.9,0.82,'R'],
+          [6,69,0.9,0.86,'R'],[6,41,2.8,0.72,'L'],[7,53,1.8,0.68,'L'],[7,69,0.9,0.84,'R'],[8,65,0.9,0.82,'R'],
+          [9,69,1.9,0.86,'R'],[9,41,1.9,0.70,'L'],[11,72,0.9,0.88,'R'],
+          // It is the night of our dear Savior's birth
+          [12,67,1.4,0.84,'R'],[12,48,2.8,0.72,'L'],[13.5,67,0.45,0.80,'R'],[14,64,0.9,0.80,'R'],
+          [15,60,1.9,0.82,'R'],[15,48,2.8,0.70,'L'],[17,64,0.9,0.82,'R'],
+          [18,67,1.4,0.84,'R'],[18,43,2.8,0.72,'L'],[19.5,65,0.45,0.80,'R'],[20,62,0.9,0.78,'R'],
+          [21,60,2.8,0.86,'R'],[21,48,2.8,0.74,'L'],[22,55,1.8,0.70,'L'],
+          // Fall on your knees! O hear the angel voices! O night divine!
+          [24,72,1.9,0.88,'R'],[24,45,2.8,0.74,'L'],[26,71,0.9,0.86,'R'],
+          [27,64,0.9,0.82,'R'],[27,40,2.8,0.72,'L'],[28,69,1.9,0.86,'R'],
+          [30,71,1.4,0.88,'R'],[30,50,2.8,0.74,'L'],[31.5,69,0.45,0.84,'R'],[32,67,0.9,0.84,'R'],
+          [33,72,2.8,0.90,'R'],[33,48,2.8,0.78,'L'],[34,55,1.8,0.74,'L']
+        ],
+        verses: [
+          [
+            [0, 'Verse 1: O holy night! The stars are brightly shining,'],
+            [12, 'It is the night of our dear Savior’s birth;'],
+            [24, 'Fall on your knees! O hear the angel voices! O night divine!']
+          ],
+          [
+            [0, 'Verse 2: Led by the light of faith serenely beaming,'],
+            [12, 'With glowing hearts by His cradle we stand;'],
+            [24, 'Christ is the Lord! O praise His Name forever! His pow’r and glory evermore proclaim!']
+          ]
+        ]
+      }),
+
+      // -----------------------------------------------------------------------
+      // 7. THE FIRST NOEL (Traditional English Carol, 1823)
+      // -----------------------------------------------------------------------
+      createStrophicSong({
+        id: 'the_first_noel',
+        title: 'The First Noel',
+        composer: 'Traditional English Carol (published 1823)',
+        category: 'christmas',
+        bpm: 100,
+        verseBeats: 36,
+        baseNotes: [
+          // The First Noel the angel did say
+          [0,64,0.45,0.78,'R'],[0.5,62,0.45,0.76,'R'],
+          [1,60,1.4,0.82,'R'],[1,48,2.8,0.70,'L'],[2,55,1.8,0.66,'L'],[2.5,62,0.45,0.78,'R'],
+          [3,64,0.45,0.80,'R'],[3.5,65,0.45,0.82,'R'],
+          [4,67,1.9,0.86,'R'],[4,48,2.8,0.70,'L'],[6,69,0.45,0.84,'R'],[6.5,71,0.45,0.86,'R'],
+          [7,72,0.9,0.88,'R'],[7,41,2.8,0.72,'L'],[8,71,0.9,0.86,'R'],[9,69,0.9,0.84,'R'],
+          [10,67,1.9,0.86,'R'],[10,43,2.8,0.72,'L'],[12,69,0.45,0.84,'R'],[12.5,71,0.45,0.86,'R'],
+          // Was to certain poor shepherds in fields as they lay
+          [13,72,0.9,0.88,'R'],[13,48,2.8,0.72,'L'],[14,71,0.9,0.86,'R'],[15,69,0.9,0.84,'R'],
+          [16,67,0.9,0.84,'R'],[16,41,2.8,0.72,'L'],[17,69,0.9,0.84,'R'],[18,71,0.9,0.86,'R'],
+          [19,72,0.9,0.88,'R'],[19,48,2.8,0.72,'L'],[20,67,0.9,0.84,'R'],[21,65,0.9,0.82,'R'],
+          [22,64,1.9,0.84,'R'],[22,43,2.8,0.72,'L'],
+          // Noel, Noel, Noel, Noel, Born is the King of Israel
+          [24,64,0.45,0.80,'R'],[24.5,62,0.45,0.78,'R'],
+          [25,60,1.4,0.82,'R'],[25,48,2.8,0.72,'L'],[26.5,62,0.45,0.80,'R'],[27,64,0.45,0.82,'R'],[27.5,65,0.45,0.82,'R'],
+          [28,67,1.9,0.86,'R'],[28,45,2.8,0.72,'L'],[30,72,0.45,0.88,'R'],[30.5,71,0.45,0.86,'R'],
+          [31,69,1.9,0.86,'R'],[31,41,1.9,0.74,'L'],[33,67,0.9,0.84,'R'],[33,43,0.9,0.74,'L'],
+          [34,60,1.9,0.90,'R'],[34,48,1.9,0.78,'L'],[34,55,1.9,0.74,'L']
+        ],
+        verses: [
+          [
+            [0, 'Verse 1: The First Noel the angel did say'],
+            [13, 'Was to certain poor shepherds in fields as they lay;'],
+            [24, 'Noel, Noel, Noel, Noel, Born is the King of Israel!']
+          ],
+          [
+            [0, 'Verse 2: They looked up and saw a star'],
+            [13, 'Shining in the East beyond them far;'],
+            [24, 'Noel, Noel, Noel, Noel, Born is the King of Israel!']
+          ],
+          [
+            [0, 'Verse 3: And by the light of that same star'],
+            [13, 'Three Wise Men came from country far;'],
+            [24, 'Noel, Noel, Noel, Noel, Born is the King of Israel!']
+          ]
+        ]
+      }),
+
+      // -----------------------------------------------------------------------
+      // 8. O CHRISTMAS TREE (O Tannenbaum, 1824)
+      // -----------------------------------------------------------------------
+      createStrophicSong({
+        id: 'o_christmas_tree',
+        title: 'O Christmas Tree (O Tannenbaum)',
+        composer: 'Traditional German Carol / Ernst Anschütz (1824)',
+        category: 'christmas',
+        bpm: 98,
+        verseBeats: 36,
+        baseNotes: [
+          // O Christmas Tree, O Christmas Tree, How lovely are thy branches!
+          [0,60,0.9,0.78,'R'],
+          [1,65,1.4,0.84,'R'],[1,41,2.8,0.70,'L'],[2,53,1.8,0.66,'L'],[2.5,65,0.45,0.82,'R'],[3,65,0.9,0.84,'R'],
+          [4,67,0.9,0.84,'R'],[4,48,2.8,0.70,'L'],[5,69,1.4,0.86,'R'],[6.5,69,0.45,0.84,'R'],
+          [7,69,1.4,0.86,'R'],[7,41,2.8,0.72,'L'],[8.5,69,0.45,0.84,'R'],[9,67,0.45,0.82,'R'],[9.5,69,0.45,0.84,'R'],
+          [10,70,0.9,0.86,'R'],[10,48,1.9,0.72,'L'],[11,64,0.9,0.80,'R'],[12,67,0.9,0.84,'R'],
+          [13,65,1.9,0.86,'R'],[13,41,1.9,0.74,'L'],[13,53,1.9,0.70,'L'],
+          // B section: Not only green when summer's here, But also when 'tis cold and drear
+          [15,72,0.45,0.84,'R'],[15.5,72,0.45,0.84,'R'],
+          [16,69,0.45,0.82,'R'],[16,41,2.8,0.72,'L'],[16.5,74,1.4,0.88,'R'],[18,72,0.45,0.84,'R'],[18.5,72,0.45,0.84,'R'],
+          [19,70,0.45,0.84,'R'],[19,48,2.8,0.72,'L'],[19.5,70,1.4,0.84,'R'],[21,70,0.45,0.82,'R'],[21.5,70,0.45,0.82,'R'],
+          [22,67,0.45,0.82,'R'],[22,48,2.8,0.72,'L'],[22.5,72,1.4,0.86,'R'],[24,70,0.45,0.84,'R'],[24.5,70,0.45,0.84,'R'],
+          [25,69,1.9,0.86,'R'],[25,41,1.9,0.72,'L'],
+          // Return A: O Christmas Tree, O Christmas Tree, How lovely are thy branches!
+          [27,60,0.9,0.80,'R'],
+          [28,65,1.4,0.84,'R'],[28,41,2.8,0.72,'L'],[29.5,65,0.45,0.82,'R'],[30,65,0.9,0.84,'R'],
+          [31,67,0.9,0.84,'R'],[31,48,1.9,0.72,'L'],[32,69,0.9,0.86,'R'],[33,70,0.9,0.86,'R'],
+          [34,67,0.9,0.84,'R'],[34,48,0.9,0.72,'L'],
+          [35,65,1.0,0.90,'R'],[35,41,1.0,0.78,'L'],[35,53,1.0,0.74,'L']
+        ],
+        verses: [
+          [
+            [0, 'Verse 1: O Christmas Tree, O Christmas Tree, How lovely are thy branches!'],
+            [15, 'Not only green when summer’s here, But also when ’tis cold and drear.'],
+            [27, 'O Christmas Tree, O Christmas Tree, How lovely are thy branches!']
+          ],
+          [
+            [0, 'Verse 2: O Christmas Tree, O Christmas Tree, Much pleasure thou canst give me!'],
+            [15, 'How often has the Christmas tree Afforded greatest joy to me!'],
+            [27, 'O Christmas Tree, O Christmas Tree, Much pleasure thou canst give me!']
+          ],
+          [
+            [0, 'Verse 3: O Christmas Tree, O Christmas Tree, Thy candles shine so brightly!'],
+            [15, 'From base to summit, gay and bright, There’s only splendor for the sight.'],
+            [27, 'O Christmas Tree, O Christmas Tree, Thy candles shine so brightly!']
+          ]
+        ]
+      }),
+
+      // -----------------------------------------------------------------------
+      // 9. AWAY IN A MANGER (James R. Murray, 1887)
+      // -----------------------------------------------------------------------
+      createStrophicSong({
+        id: 'away_in_a_manger',
+        title: 'Away in a Manger',
+        composer: 'Anonymous (1885) / James R. Murray (1887)',
+        category: 'christmas',
+        bpm: 96,
+        verseBeats: 24,
+        baseNotes: [
+          [0,60,0.9,0.76,'R'],
+          [1,65,0.9,0.82,'R'],[1,41,2.8,0.68,'L'],[2,53,1.8,0.64,'L'],[2,65,0.9,0.80,'R'],[3,67,0.45,0.80,'R'],[3.5,69,0.45,0.82,'R'],
+          [4,65,0.9,0.80,'R'],[4,41,2.8,0.68,'L'],[5,65,0.9,0.80,'R'],[6,69,0.45,0.82,'R'],[6.5,70,0.45,0.82,'R'],
+          [7,72,0.9,0.84,'R'],[7,46,2.8,0.70,'L'],[8,72,0.9,0.84,'R'],[9,74,0.9,0.86,'R'],
+          [10,70,1.9,0.84,'R'],[10,46,1.9,0.70,'L'],[12,67,0.45,0.80,'R'],[12.5,69,0.45,0.80,'R'],
+          [13,70,0.9,0.82,'R'],[13,48,2.8,0.70,'L'],[14,70,0.9,0.82,'R'],[15,72,0.9,0.84,'R'],
+          [16,69,0.9,0.82,'R'],[16,41,2.8,0.70,'L'],[17,69,0.9,0.82,'R'],[18,65,0.45,0.80,'R'],[18.5,69,0.45,0.82,'R'],
+          [19,67,0.9,0.80,'R'],[19,48,2.8,0.70,'L'],[20,62,0.9,0.76,'R'],[21,64,0.9,0.78,'R'],
+          [22,65,1.9,0.86,'R'],[22,41,1.9,0.74,'L'],[22,53,1.9,0.70,'L']
+        ],
+        verses: [
+          [
+            [0, 'Verse 1: Away in a manger, no crib for a bed,'],
+            [12, 'The little Lord Jesus laid down His sweet head.']
+          ],
+          [
+            [0, 'Verse 2: The stars in the bright sky looked down where He lay,'],
+            [12, 'The little Lord Jesus asleep on the hay.']
+          ],
+          [
+            [0, 'Verse 3: Be near me, Lord Jesus; I ask Thee to stay'],
+            [12, 'Close by me forever, and love me, I pray.']
+          ]
+        ]
+      }),
+
+      // -----------------------------------------------------------------------
+      // 10. IT CAME UPON THE MIDNIGHT CLEAR (Edmund Sears / Richard Willis, 1850)
+      // -----------------------------------------------------------------------
+      createStrophicSong({
+        id: 'it_came_upon_the_midnight_clear',
+        title: 'It Came Upon the Midnight Clear',
+        composer: 'Edmund Sears (1849) / Richard Storrs Willis (1850)',
+        category: 'christmas',
+        bpm: 96,
+        verseBeats: 32,
+        baseNotes: [
+          [0,60,0.9,0.78,'R'],
+          [1,69,0.9,0.84,'R'],[1,41,2.8,0.70,'L'],[2,53,1.8,0.66,'L'],[2,65,0.9,0.80,'R'],[3,67,0.45,0.80,'R'],[3.5,65,0.45,0.78,'R'],
+          [4,64,1.9,0.82,'R'],[4,48,2.8,0.70,'L'],[6,62,0.9,0.78,'R'],
+          [7,60,0.9,0.80,'R'],[7,41,2.8,0.70,'L'],[8,62,0.9,0.80,'R'],[9,64,0.9,0.82,'R'],
+          [10,65,1.9,0.84,'R'],[10,41,1.9,0.72,'L'],[12,67,0.9,0.82,'R'],
+          [13,69,0.9,0.86,'R'],[13,41,2.8,0.72,'L'],[14,69,0.9,0.84,'R'],[15,70,0.45,0.84,'R'],[15.5,72,0.45,0.86,'R'],
+          [16,74,1.9,0.88,'R'],[16,46,2.8,0.72,'L'],[18,72,0.9,0.86,'R'],
+          [19,69,0.9,0.84,'R'],[19,48,2.8,0.72,'L'],[20,67,0.9,0.82,'R'],[21,65,0.9,0.80,'R'],
+          [22,67,1.9,0.84,'R'],[22,48,1.9,0.72,'L'],[24,69,0.9,0.84,'R'],
+          [25,72,0.9,0.88,'R'],[25,41,2.8,0.74,'L'],[26,69,0.9,0.84,'R'],[27,67,0.9,0.82,'R'],
+          [28,65,0.9,0.82,'R'],[28,48,1.9,0.72,'L'],[29,64,0.9,0.80,'R'],[30,62,0.9,0.78,'R'],
+          [31,65,1.0,0.88,'R'],[31,41,1.0,0.76,'L'],[31,53,1.0,0.72,'L']
+        ],
+        verses: [
+          [
+            [0, 'Verse 1: It came upon the midnight clear, That glorious song of old,'],
+            [13, 'From angels bending near the earth, To touch their harps of gold:'],
+            [24, '“Peace on the earth, good will to men, From heav’n’s all-gracious King!”']
+          ],
+          [
+            [0, 'Verse 2: Still through the cloven skies they come, With peaceful wings unfurled,'],
+            [13, 'And still their heav’nly music floats O’er all the weary world;'],
+            [24, 'Above its sad and lowly plains They bend on hov’ring wing.']
+          ]
+        ]
+      }),
+
+      // -----------------------------------------------------------------------
+      // 11. GOD REST YE MERRY, GENTLEMEN (Traditional English Carol, c. 1650)
+      // -----------------------------------------------------------------------
+      createStrophicSong({
+        id: 'god_rest_ye_merry_gentlemen',
+        title: 'God Rest Ye Merry, Gentlemen',
+        composer: 'Traditional English Carol (c. 1650)',
+        category: 'christmas',
+        bpm: 124,
+        verseBeats: 36,
+        baseNotes: [
+          [0,64,0.45,0.80,'R'],[0.5,64,0.45,0.80,'R'],
+          [1,71,0.9,0.86,'R'],[1,40,1.9,0.74,'L'],[1,52,1.9,0.70,'L'],[2,71,0.9,0.86,'R'],
+          [3,69,0.9,0.84,'R'],[3,45,1.9,0.72,'L'],[4,67,0.9,0.82,'R'],
+          [5,66,0.9,0.82,'R'],[5,47,1.9,0.72,'L'],[6,64,0.9,0.80,'R'],
+          [7,62,0.9,0.78,'R'],[7,40,1.9,0.72,'L'],[8,64,0.9,0.80,'R'],
+          [9,66,0.9,0.82,'R'],[9,47,1.9,0.72,'L'],[10,67,0.9,0.84,'R'],
+          [11,69,0.9,0.86,'R'],[11,45,1.9,0.72,'L'],[12,71,1.9,0.88,'R'],[12,47,1.9,0.74,'L'],
+          // Repeat phrase: Remember Christ our Savior Was born on Christmas Day
+          [14,64,0.45,0.80,'R'],[14.5,64,0.45,0.80,'R'],
+          [15,71,0.9,0.86,'R'],[15,40,1.9,0.74,'L'],[16,71,0.9,0.86,'R'],
+          [17,69,0.9,0.84,'R'],[17,45,1.9,0.72,'L'],[18,67,0.9,0.82,'R'],
+          [19,66,0.9,0.82,'R'],[19,47,1.9,0.72,'L'],[20,64,0.9,0.80,'R'],
+          [21,62,0.9,0.78,'R'],[21,40,1.9,0.72,'L'],[22,64,0.9,0.80,'R'],
+          [23,66,0.9,0.82,'R'],[23,47,1.9,0.72,'L'],[24,67,0.9,0.84,'R'],
+          [25,69,0.9,0.86,'R'],[25,45,1.9,0.72,'L'],[26,71,1.9,0.88,'R'],[26,47,1.9,0.74,'L'],
+          // Refrain: O tidings of comfort and joy!
+          [28,67,0.9,0.84,'R'],[28,43,1.9,0.74,'L'],[29,69,0.9,0.86,'R'],
+          [30,71,0.9,0.88,'R'],[30,47,1.9,0.74,'L'],[31,74,0.9,0.90,'R'],
+          [32,71,0.9,0.86,'R'],[32,45,1.9,0.74,'L'],[33,69,0.9,0.84,'R'],
+          [34,67,0.9,0.82,'R'],[34,47,0.9,0.72,'L'],
+          [35,64,1.0,0.90,'R'],[35,40,1.0,0.78,'L'],[35,52,1.0,0.74,'L']
+        ],
+        verses: [
+          [
+            [0, 'Verse 1: God rest ye merry, gentlemen, Let nothing you dismay,'],
+            [14, 'Remember Christ our Savior Was born on Christmas Day;'],
+            [28, 'O tidings of comfort and joy, comfort and joy!']
+          ],
+          [
+            [0, 'Verse 2: From God our Heav’nly Father A blessèd Angel came;'],
+            [14, 'And unto certain Shepherds Brought tidings of the same;'],
+            [28, 'O tidings of comfort and joy, comfort and joy!']
+          ],
+          [
+            [0, 'Verse 3: “Fear not then,” said the Angel, “Let nothing you affright,'],
+            [14, 'This day is born a Savior Of a pure Virgin bright.”'],
+            [28, 'O tidings of comfort and joy, comfort and joy!']
+          ]
+        ]
+      }),
+
+      // -----------------------------------------------------------------------
+      // 12. WE THREE KINGS OF ORIENT ARE (John Henry Hopkins Jr., 1857)
+      // -----------------------------------------------------------------------
+      createStrophicSong({
+        id: 'we_three_kings',
+        title: 'We Three Kings of Orient Are',
+        composer: 'John Henry Hopkins Jr. (1857)',
+        category: 'christmas',
+        bpm: 108,
+        verseBeats: 36,
+        baseNotes: [
+          // Verse (E minor): We three kings of Orient are, Bearing gifts we traverse afar
+          [0,71,1.9,0.84,'R'],[0,40,2.8,0.72,'L'],[0,52,2.8,0.68,'L'],[2,69,0.9,0.82,'R'],
+          [3,67,1.9,0.82,'R'],[3,40,2.8,0.72,'L'],[5,64,0.9,0.78,'R'],
+          [6,66,0.9,0.80,'R'],[6,47,2.8,0.72,'L'],[7,67,0.9,0.82,'R'],[8,66,0.9,0.80,'R'],
+          [9,64,2.8,0.84,'R'],[9,40,2.8,0.74,'L'],
+          [12,71,1.9,0.86,'R'],[12,40,2.8,0.72,'L'],[14,69,0.9,0.82,'R'],
+          [15,67,1.9,0.82,'R'],[15,40,2.8,0.72,'L'],[17,64,0.9,0.78,'R'],
+          [18,66,0.9,0.80,'R'],[18,47,2.8,0.72,'L'],[19,67,0.9,0.82,'R'],[20,66,0.9,0.80,'R'],
+          [21,64,2.8,0.84,'R'],[21,40,2.8,0.74,'L'],
+          // Chorus (G major): O Star of wonder, star of night, Guide us to thy perfect light
+          [24,69,1.9,0.84,'R'],[24,50,2.8,0.74,'L'],[26,69,0.9,0.84,'R'],
+          [27,67,1.9,0.86,'R'],[27,43,2.8,0.74,'L'],[29,67,0.9,0.84,'R'],
+          [30,72,0.9,0.88,'R'],[30,48,2.8,0.74,'L'],[31,71,0.9,0.86,'R'],[32,69,0.9,0.84,'R'],
+          [33,67,2.8,0.90,'R'],[33,43,2.8,0.78,'L'],[33,55,2.8,0.74,'L']
+        ],
+        verses: [
+          [
+            [0, 'Verse 1: We three kings of Orient are, Bearing gifts we traverse afar,'],
+            [12, 'Field and fountain, moor and mountain, Following yonder star.'],
+            [24, 'Refrain: O Star of wonder, star of night, Guide us to thy perfect light!']
+          ],
+          [
+            [0, 'Verse 2: Born a King on Bethlehem’s plain, Gold I bring to crown Him again,'],
+            [12, 'King forever, ceasing never, Over us all to reign.'],
+            [24, 'Refrain: O Star of wonder, star of night, Guide us to thy perfect light!']
+          ],
+          [
+            [0, 'Verse 3: Frankincense to offer have I; Incense owns a Deity nigh;'],
+            [12, 'Prayer and praising, voices raising, Worshiping God on high.'],
+            [24, 'Refrain: O Star of wonder, star of night, Guide us to thy perfect light!']
+          ]
+        ]
+      }),
+
+      // -----------------------------------------------------------------------
+      // 13. CAROL OF THE BELLS / SHCHEDRYK (Mykola Leontovych, 1914)
+      // -----------------------------------------------------------------------
+      createStrophicSong({
+        id: 'carol_of_the_bells',
+        title: 'Carol of the Bells (Ukrainian Bell Carol)',
+        composer: 'Mykola Leontovych (1914 / Public-Domain English Bell Text)',
+        category: 'christmas',
+        bpm: 138,
+        verseBeats: 36,
+        baseNotes: [
+          // Ostinato Bb4 - A4 - Bb4 - G4 in 3/4 over descending G minor bass
+          [0,70,0.9,0.82,'R'],[0,55,2.8,0.72,'L'],[1,69,0.45,0.78,'R'],[1.5,70,0.45,0.80,'R'],[2,67,0.9,0.80,'R'],
+          [3,70,0.9,0.82,'R'],[3,53,2.8,0.72,'L'],[4,69,0.45,0.78,'R'],[4.5,70,0.45,0.80,'R'],[5,67,0.9,0.80,'R'],
+          [6,70,0.9,0.84,'R'],[6,51,2.8,0.72,'L'],[7,69,0.45,0.80,'R'],[7.5,70,0.45,0.82,'R'],[8,67,0.9,0.80,'R'],
+          [9,70,0.9,0.84,'R'],[9,50,2.8,0.72,'L'],[10,69,0.45,0.80,'R'],[10.5,70,0.45,0.82,'R'],[11,67,0.9,0.80,'R'],
+          // Upper octave bell entrance D5 - C5 - D5 - Bb4
+          [12,74,0.9,0.86,'R'],[12,43,2.8,0.74,'L'],[12,55,2.8,0.70,'L'],[13,72,0.45,0.82,'R'],[13.5,74,0.45,0.84,'R'],[14,70,0.9,0.84,'R'],
+          [15,74,0.9,0.86,'R'],[15,41,2.8,0.74,'L'],[16,72,0.45,0.82,'R'],[16.5,74,0.45,0.84,'R'],[17,70,0.9,0.84,'R'],
+          [18,74,0.9,0.86,'R'],[18,39,2.8,0.74,'L'],[19,72,0.45,0.82,'R'],[19.5,74,0.45,0.84,'R'],[20,70,0.9,0.84,'R'],
+          [21,74,0.9,0.86,'R'],[21,38,2.8,0.74,'L'],[22,72,0.45,0.82,'R'],[22.5,74,0.45,0.84,'R'],[23,70,0.9,0.84,'R'],
+          // Cascading scale climax G5 -> G4
+          [24,79,0.9,0.90,'R'],[24,48,2.8,0.76,'L'],[25,79,0.45,0.88,'R'],[25.5,79,0.45,0.88,'R'],[26,77,0.45,0.86,'R'],[26.5,75,0.45,0.86,'R'],
+          [27,74,0.9,0.88,'R'],[27,50,2.8,0.76,'L'],[28,74,0.45,0.86,'R'],[28.5,74,0.45,0.86,'R'],[29,72,0.45,0.84,'R'],[29.5,70,0.45,0.84,'R'],
+          [30,69,0.9,0.84,'R'],[30,50,2.8,0.74,'L'],[31,70,0.45,0.84,'R'],[31.5,69,0.45,0.82,'R'],[32,67,0.9,0.82,'R'],
+          [33,70,0.9,0.86,'R'],[33,43,2.8,0.78,'L'],[34,69,0.45,0.82,'R'],[34.5,70,0.45,0.84,'R'],[35,67,0.9,0.88,'R']
+        ],
+        verses: [
+          [
+            [0, 'Verse 1 (Shchedryk): Ring, silver bells, chime through the night,'],
+            [12, 'Bountiful eve, starlight so bright,'],
+            [24, 'Swallows return, singing of spring, Joy to the home glad tidings bring!']
+          ],
+          [
+            [0, 'Verse 2: Ding, dong, ding, dong! Chime from the spire,'],
+            [12, 'Warm glowing hearth, bright Yule log fire,'],
+            [24, 'Peace on the earth, goodwill to all, Answer the bells’ joyful call!']
+          ]
+        ]
+      }),
+
+      // -----------------------------------------------------------------------
+      // 14. DANCE OF THE SUGAR PLUM FAIRY (Pyotr Ilyich Tchaikovsky, 1892)
+      // -----------------------------------------------------------------------
+      createStrophicSong({
+        id: 'sugar_plum_fairy',
+        title: 'Dance of the Sugar Plum Fairy (The Nutcracker)',
+        composer: 'Pyotr Ilyich Tchaikovsky (1892)',
+        category: 'christmas',
+        bpm: 112,
+        verseBeats: 32,
+        baseNotes: [
+          // Plucky celesta intro + iconic descending chromatic motif
+          [0,40,0.4,0.68,'L'],[1,52,0.4,0.66,'L'],[2,45,0.4,0.68,'L'],[3,52,0.4,0.66,'L'],
+          [4,79,0.35,0.82,'R'],[4,40,0.4,0.70,'L'],[4.5,76,0.35,0.80,'R'],
+          [5,79,0.7,0.86,'R'],[5,52,0.4,0.68,'L'],
+          [6,78,0.4,0.84,'R'],[6,47,0.4,0.70,'L'],[7,75,0.4,0.82,'R'],[7,54,0.4,0.68,'L'],
+          [8,76,0.4,0.84,'R'],[8,40,0.4,0.70,'L'],[9,74,0.35,0.82,'R'],[9.5,74,0.35,0.82,'R'],
+          [10,74,0.7,0.84,'R'],[10,49,0.4,0.70,'L'],
+          [11,73,0.35,0.82,'R'],[11.5,73,0.35,0.82,'R'],[12,73,0.7,0.84,'R'],[12,48,0.4,0.70,'L'],
+          [13,72,0.35,0.82,'R'],[13.5,72,0.35,0.82,'R'],[14,72,0.7,0.84,'R'],[14,47,0.4,0.72,'L'],
+          [15,71,0.35,0.86,'R'],[15.5,78,0.35,0.88,'R'],[16,76,0.35,0.86,'R'],[16.5,79,0.35,0.88,'R'],
           // Second phrase
-          [12.0, 76, 0.45, 0.74, 'R'], [12.5, 75, 0.45, 0.72, 'R'],
-          [13.0, 76, 0.45, 0.76, 'R'], [13.5, 75, 0.45, 0.72, 'R'], [14.0, 76, 0.45, 0.78, 'R'],
-          [14.5, 71, 0.45, 0.74, 'R'], [15.0, 74, 0.45, 0.75, 'R'], [15.5, 72, 0.45, 0.72, 'R'],
-          [16.0, 69, 1.40, 0.80, 'R'],
-          [16.0, 45, 1.40, 0.68, 'L'], [16.5, 52, 1.00, 0.62, 'L'], [17.0, 57, 0.90, 0.64, 'L'],
-          [17.5, 60, 0.45, 0.72, 'R'], [18.0, 64, 0.45, 0.74, 'R'], [18.5, 69, 0.45, 0.76, 'R'],
-          [19.0, 71, 1.40, 0.78, 'R'],
-          [19.0, 40, 1.40, 0.68, 'L'], [19.5, 52, 1.00, 0.62, 'L'], [20.0, 56, 0.90, 0.64, 'L'],
-          [20.5, 64, 0.45, 0.72, 'R'], [21.0, 72, 0.45, 0.76, 'R'], [21.5, 71, 0.45, 0.74, 'R'],
-          [22.0, 69, 2.20, 0.82, 'R'],
-          [22.0, 45, 2.20, 0.72, 'L'], [22.5, 52, 1.70, 0.66, 'L'], [23.0, 57, 1.40, 0.68, 'L']
-        ])
-      },
-      {
+          [17,71,0.9,0.86,'R'],[17,40,0.9,0.74,'L'],
+          [20,79,0.35,0.84,'R'],[20,40,0.4,0.70,'L'],[20.5,76,0.35,0.82,'R'],
+          [21,79,0.7,0.86,'R'],[21,52,0.4,0.68,'L'],
+          [22,78,0.4,0.84,'R'],[22,47,0.4,0.70,'L'],[23,75,0.4,0.82,'R'],
+          [24,76,0.4,0.84,'R'],[24,48,0.4,0.70,'L'],[25,76,0.35,0.82,'R'],[25.5,76,0.35,0.82,'R'],
+          [26,76,0.7,0.84,'R'],[26,50,0.4,0.70,'L'],
+          [27,74,0.35,0.82,'R'],[27.5,74,0.35,0.82,'R'],[28,74,0.7,0.84,'R'],[28,43,0.4,0.72,'L'],
+          [29,72,0.35,0.84,'R'],[29.5,79,0.35,0.86,'R'],[30,76,0.35,0.84,'R'],[30.5,72,0.35,0.84,'R'],
+          [31,67,0.95,0.88,'R'],[31,48,0.95,0.76,'L']
+        ],
+        verses: [
+          [
+            [0, '♪ Instrumental Ballet: Dance of the Sugar Plum Fairy (The Nutcracker, Act II) ♪'],
+            [16, '♪ Celesta & String Pizzicato Theme in E Minor ♪']
+          ],
+          [
+            [0, '♪ Reprise: Chromatic Fairy Variation ♪'],
+            [16, '♪ Sparkling Crystalline Cadence ♪']
+          ]
+        ]
+      }),
+
+      // -----------------------------------------------------------------------
+      // 15. GOOD KING WENCESLAS (John Mason Neale, 1853 / 1582 Melody)
+      // -----------------------------------------------------------------------
+      createStrophicSong({
+        id: 'good_king_wenceslas',
+        title: 'Good King Wenceslas',
+        composer: 'John Mason Neale (1853) / Piae Cantiones (1582)',
+        category: 'christmas',
+        bpm: 120,
+        verseBeats: 32,
+        baseNotes: [
+          [0,65,0.9,0.84,'R'],[0,41,1.9,0.72,'L'],[0,53,1.9,0.68,'L'],[1,65,0.9,0.84,'R'],
+          [2,65,0.9,0.84,'R'],[2,46,1.9,0.72,'L'],[3,67,0.9,0.86,'R'],
+          [4,65,0.9,0.84,'R'],[4,41,1.9,0.72,'L'],[5,65,0.9,0.82,'R'],
+          [6,60,1.9,0.82,'R'],[6,48,1.9,0.72,'L'],
+          [8,62,0.9,0.80,'R'],[8,46,1.9,0.70,'L'],[9,60,0.9,0.78,'R'],
+          [10,62,0.9,0.80,'R'],[10,48,1.9,0.70,'L'],[11,64,0.9,0.82,'R'],
+          [12,65,1.9,0.86,'R'],[12,41,1.9,0.74,'L'],[14,65,1.9,0.86,'R'],
+          // Repeat phrase
+          [16,65,0.9,0.84,'R'],[16,41,1.9,0.72,'L'],[17,65,0.9,0.84,'R'],
+          [18,65,0.9,0.84,'R'],[18,46,1.9,0.72,'L'],[19,67,0.9,0.86,'R'],
+          [20,65,0.9,0.84,'R'],[20,41,1.9,0.72,'L'],[21,65,0.9,0.82,'R'],
+          [22,60,1.9,0.82,'R'],[22,48,1.9,0.72,'L'],
+          // Climax: Brightly shone the moon that night, Though the frost was cruel
+          [24,72,0.9,0.88,'R'],[24,41,1.9,0.74,'L'],[25,70,0.9,0.86,'R'],
+          [26,69,0.9,0.86,'R'],[26,48,1.9,0.72,'L'],[27,67,0.9,0.84,'R'],
+          [28,65,0.9,0.84,'R'],[28,50,1.9,0.72,'L'],[29,62,0.9,0.80,'R'],
+          [30,65,1.9,0.90,'R'],[30,41,1.9,0.78,'L'],[30,53,1.9,0.74,'L']
+        ],
+        verses: [
+          [
+            [0, 'Verse 1: Good King Wenceslas looked out, On the Feast of Stephen,'],
+            [16, 'When the snow lay round about, Deep and crisp and even;'],
+            [24, 'Brightly shone the moon that night, Though the frost was cruel.']
+          ],
+          [
+            [0, 'Verse 2: “Hither, page, and stand by me, If thou know’st it, telling,'],
+            [16, 'Yonder peasant, who is he? Where and what his dwelling?”'],
+            [24, '“Sire, he lives a good league hence, Underneath the mountain.”']
+          ],
+          [
+            [0, 'Verse 3: “Bring me flesh, and bring me wine, Bring me pine logs hither:'],
+            [16, 'Thou and I will see him dine, When we bear them thither.”'],
+            [24, 'Page and monarch, forth they went, Forth they went together.']
+          ]
+        ]
+      }),
+
+      // -----------------------------------------------------------------------
+      // 16. COVENTRY CAROL (Traditional 16th-Century English Carol, 1591)
+      // -----------------------------------------------------------------------
+      createStrophicSong({
+        id: 'coventry_carol',
+        title: 'Coventry Carol (Lully, Lullay)',
+        composer: 'Traditional 16th-Century English Carol (1591)',
+        category: 'christmas',
+        bpm: 84,
+        verseBeats: 24,
+        baseNotes: [
+          // G minor Renaissance harmony ending on G major Picardy third
+          [0,67,1.9,0.80,'R'],[0,43,2.8,0.70,'L'],[0,55,2.8,0.66,'L'],[2,67,0.9,0.78,'R'],
+          [3,66,1.9,0.80,'R'],[3,50,2.8,0.70,'L'],[5,67,0.9,0.80,'R'],
+          [6,70,1.9,0.84,'R'],[6,43,2.8,0.72,'L'],[8,69,0.9,0.82,'R'],
+          [9,67,2.8,0.82,'R'],[9,43,2.8,0.70,'L'],
+          [12,69,1.9,0.82,'R'],[12,41,2.8,0.70,'L'],[14,70,0.9,0.84,'R'],
+          [15,72,1.9,0.86,'R'],[15,48,2.8,0.72,'L'],[17,74,0.9,0.86,'R'],
+          [18,69,1.9,0.82,'R'],[18,50,2.8,0.72,'L'],[20,67,0.9,0.80,'R'],
+          [21,66,1.4,0.82,'R'],[21,50,1.4,0.70,'L'],
+          [22.5,67,1.5,0.86,'R'],[22.5,43,1.5,0.76,'L'],[22.5,59,1.5,0.72,'L']
+        ],
+        verses: [
+          [
+            [0, 'Verse 1: Lully, lullay, thou little tiny Child,'],
+            [12, 'By, by, lully, lullay, thou little tiny Child.']
+          ],
+          [
+            [0, 'Verse 2: O sisters too, how may we do For to preserve this day'],
+            [12, 'This poor youngling for whom we sing, By, by, lully, lullay?']
+          ],
+          [
+            [0, 'Verse 3: Herod the king, in his raging, Chargèd he hath this day'],
+            [12, 'His men of might, in his own sight, All young children to slay.']
+          ]
+        ]
+      }),
+
+      // -----------------------------------------------------------------------
+      // 17. WHAT CHILD IS THIS? / GREENSLEEVES (William Chatterton Dix, 1865)
+      // -----------------------------------------------------------------------
+      createStrophicSong({
+        id: 'greensleeves',
+        title: 'What Child Is This? (Greensleeves)',
+        composer: 'Traditional 16th-Century English / William Chatterton Dix (1865)',
+        category: 'christmas',
+        bpm: 102,
+        verseBeats: 24,
+        baseNotes: [
+          [0,69,0.9,0.76,'R'],
+          [1,72,1.9,0.82,'R'],[1,45,2.8,0.68,'L'],[2,52,1.9,0.64,'L'],[2.5,57,1.4,0.64,'L'],[3,74,0.9,0.78,'R'],
+          [4,76,1.4,0.84,'R'],[4,43,2.8,0.68,'L'],[5,50,1.9,0.64,'L'],[5.5,55,1.4,0.64,'L'],[5.5,77,0.45,0.78,'R'],[6,76,0.9,0.80,'R'],
+          [7,74,1.9,0.82,'R'],[7,43,2.8,0.68,'L'],[8,50,1.9,0.64,'L'],[9,71,0.9,0.78,'R'],
+          [10,67,1.4,0.78,'R'],[10,40,2.8,0.68,'L'],[11,52,1.9,0.64,'L'],[11.5,69,0.45,0.76,'R'],[12,71,0.9,0.78,'R'],
+          [13,72,1.9,0.82,'R'],[13,45,2.8,0.70,'L'],[14,52,1.9,0.64,'L'],[15,69,0.9,0.76,'R'],
+          [16,69,1.4,0.78,'R'],[16,40,2.8,0.70,'L'],[17,52,1.9,0.64,'L'],[17.5,68,0.45,0.76,'R'],[18,69,0.9,0.78,'R'],
+          [19,71,1.9,0.82,'R'],[19,40,2.8,0.68,'L'],[20,52,1.9,0.64,'L'],[21,68,0.9,0.78,'R'],
+          [22,64,1.9,0.80,'R'],[22,45,1.9,0.72,'L'],[22.5,52,1.4,0.66,'L'],[23,57,1.0,0.68,'L']
+        ],
+        verses: [
+          [
+            [0, 'Verse 1: What Child is this, who, laid to rest, On Mary’s lap is sleeping?'],
+            [12, 'Whom angels greet with anthems sweet, While shepherds watch are keeping?']
+          ],
+          [
+            [0, 'Chorus: This, this is Christ the King, Whom shepherds guard and angels sing:'],
+            [12, 'Haste, haste to bring Him laud, The Babe, the Son of Mary!']
+          ],
+          [
+            [0, 'Verse 2 (Greensleeves): Alas, my love, you do me wrong, To cast me off discourteously,'],
+            [12, 'Greensleeves was all my joy, Greensleeves was my delight!']
+          ]
+        ]
+      }),
+
+      // -----------------------------------------------------------------------
+      // 18. AULD LANG SYNE (Robert Burns, 1788)
+      // -----------------------------------------------------------------------
+      createStrophicSong({
+        id: 'auld_lang_syne',
+        title: 'Auld Lang Syne',
+        composer: 'Traditional Scottish Folk Melody / Robert Burns (1788)',
+        category: 'christmas',
+        bpm: 96,
+        verseBeats: 32,
+        baseNotes: [
+          // Should auld acquaintance be forgot, And never brought to mind?
+          [0,60,0.9,0.78,'R'],
+          [1,65,1.4,0.84,'R'],[1,41,1.9,0.72,'L'],[1,53,1.9,0.68,'L'],[2.5,65,0.45,0.82,'R'],
+          [3,65,0.9,0.84,'R'],[3,41,1.9,0.70,'L'],[4,69,0.9,0.86,'R'],
+          [5,67,1.4,0.84,'R'],[5,48,1.9,0.72,'L'],[6.5,65,0.45,0.82,'R'],
+          [7,67,0.9,0.84,'R'],[7,48,1.9,0.70,'L'],[8,69,0.9,0.86,'R'],
+          [9,65,1.4,0.84,'R'],[9,41,1.9,0.72,'L'],[10.5,65,0.45,0.82,'R'],
+          [11,69,0.9,0.86,'R'],[11,45,1.9,0.72,'L'],[12,72,0.9,0.88,'R'],
+          [13,74,2.8,0.88,'R'],[13,46,2.8,0.74,'L'],[14,53,1.8,0.70,'L'],
+          // Chorus: For auld lang syne, my dear, For auld lang syne
+          [16,74,0.9,0.86,'R'],
+          [17,72,1.4,0.88,'R'],[17,41,1.9,0.74,'L'],[18.5,69,0.45,0.84,'R'],
+          [19,69,0.9,0.84,'R'],[19,41,1.9,0.72,'L'],[20,65,0.9,0.82,'R'],
+          [21,67,1.4,0.84,'R'],[21,48,1.9,0.72,'L'],[22.5,65,0.45,0.82,'R'],
+          [23,67,0.9,0.84,'R'],[23,48,1.9,0.70,'L'],[24,74,0.9,0.88,'R'],
+          [25,72,1.4,0.86,'R'],[25,41,1.9,0.72,'L'],[26.5,69,0.45,0.84,'R'],
+          [27,69,0.9,0.84,'R'],[27,46,1.9,0.72,'L'],[28,72,0.9,0.86,'R'],
+          [29,67,1.4,0.84,'R'],[29,48,1.4,0.72,'L'],
+          [30.5,65,1.5,0.90,'R'],[30.5,41,1.5,0.78,'L'],[30.5,53,1.5,0.74,'L']
+        ],
+        verses: [
+          [
+            [0, 'Verse 1: Should auld acquaintance be forgot, And never brought to mind?'],
+            [16, 'Should auld acquaintance be forgot, And auld lang syne!']
+          ],
+          [
+            [0, 'Chorus: For auld lang syne, my dear, For auld lang syne,'],
+            [16, 'We’ll tak a cup o’ kindness yet, For auld lang syne!']
+          ],
+          [
+            [0, 'Verse 2: And there’s a hand, my trusty fiere! And gie’s a hand o’ thine!'],
+            [16, 'And we’ll tak a right gude-willie waught, For auld lang syne!']
+          ]
+        ]
+      }),
+
+      // -----------------------------------------------------------------------
+      // 19. SILENT NIGHT (Franz Xaver Gruber / Joseph Mohr, 1818)
+      // -----------------------------------------------------------------------
+      createStrophicSong({
+        id: 'silent_night',
+        title: 'Silent Night (Stille Nacht)',
+        composer: 'Franz Xaver Gruber & Joseph Mohr (1818)',
+        category: 'christmas',
+        bpm: 88,
+        verseBeats: 36,
+        baseNotes: [
+          [0,67,1.4,0.80,'R'],[0,48,2.8,0.68,'L'],[1,52,1.8,0.64,'L'],[2,55,0.9,0.64,'L'],
+          [1.5,69,0.45,0.76,'R'],[2,67,0.9,0.78,'R'],
+          [3,64,2.8,0.80,'R'],[3,48,2.8,0.68,'L'],[4,52,1.8,0.64,'L'],[5,55,0.9,0.64,'L'],
+          [6,67,1.4,0.82,'R'],[6,48,2.8,0.68,'L'],[7,52,1.8,0.64,'L'],[8,55,0.9,0.64,'L'],
+          [7.5,69,0.45,0.78,'R'],[8,67,0.9,0.80,'R'],
+          [9,64,2.8,0.80,'R'],[9,48,2.8,0.68,'L'],[10,52,1.8,0.64,'L'],[11,55,0.9,0.64,'L'],
+          [12,74,1.9,0.86,'R'],[12,43,2.8,0.70,'L'],[13,50,1.8,0.66,'L'],[14,55,0.9,0.66,'L'],[14,74,0.9,0.84,'R'],
+          [15,71,2.8,0.82,'R'],[15,43,2.8,0.70,'L'],[16,50,1.8,0.66,'L'],[17,59,0.9,0.66,'L'],
+          [18,72,1.9,0.86,'R'],[18,48,2.8,0.72,'L'],[19,52,1.8,0.66,'L'],[20,55,0.9,0.66,'L'],[20,72,0.9,0.84,'R'],
+          [21,67,2.8,0.84,'R'],[21,48,2.8,0.72,'L'],[22,52,1.8,0.68,'L'],[23,55,0.9,0.68,'L'],
+          // Round yon Virgin + Sleep in heavenly peace
+          [24,69,1.9,0.84,'R'],[24,41,2.8,0.70,'L'],[26,69,0.9,0.82,'R'],
+          [27,72,1.4,0.86,'R'],[27,41,2.8,0.70,'L'],[28.5,71,0.45,0.82,'R'],[29,69,0.9,0.82,'R'],
+          [30,67,1.4,0.84,'R'],[30,48,2.8,0.72,'L'],[31.5,69,0.45,0.80,'R'],[32,67,0.9,0.80,'R'],
+          [33,64,1.4,0.82,'R'],[33,43,1.4,0.72,'L'],
+          [34.5,60,1.5,0.88,'R'],[34.5,48,1.5,0.76,'L'],[34.5,55,1.5,0.72,'L']
+        ],
+        verses: [
+          [
+            [0, 'Verse 1: Silent night, holy night! All is calm, all is bright'],
+            [12, 'Round yon Virgin, Mother and Child!'],
+            [24, 'Holy Infant so tender and mild, Sleep in heavenly peace!']
+          ],
+          [
+            [0, 'Verse 2: Silent night, holy night! Shepherds quake at the sight;'],
+            [12, 'Glories stream from heaven afar,'],
+            [24, 'Heav’nly hosts sing Alleluia! Christ the Savior is born!']
+          ],
+          [
+            [0, 'Verse 3: Silent night, holy night! Son of God, love’s pure light'],
+            [12, 'Radiant beams from Thy holy face,'],
+            [24, 'With the dawn of redeeming grace, Jesus, Lord, at Thy birth!']
+          ]
+        ]
+      }),
+
+      // -----------------------------------------------------------------------
+      // 20. JINGLE BELLS (James Lord Pierpont, 1857 — Full Verse & Chorus)
+      // -----------------------------------------------------------------------
+      createStrophicSong({
+        id: 'jingle_bells',
+        title: 'Jingle Bells (Full Verse & Chorus)',
+        composer: 'James Lord Pierpont (1857)',
+        category: 'christmas',
+        bpm: 134,
+        verseBeats: 64,
+        baseNotes: [
+          // Verse (32 beats): Dashing through the snow, In a one-horse open sleigh
+          [0,67,0.9,0.82,'R'],[0,48,1.9,0.70,'L'],[0,55,1.9,0.66,'L'],[1,76,0.9,0.84,'R'],
+          [2,74,0.9,0.82,'R'],[2,48,1.9,0.70,'L'],[3,72,0.9,0.80,'R'],
+          [4,67,2.8,0.84,'R'],[4,48,2.8,0.72,'L'],[7,67,0.45,0.78,'R'],[7.5,67,0.45,0.78,'R'],
+          [8,67,0.9,0.82,'R'],[8,48,1.9,0.70,'L'],[9,76,0.9,0.84,'R'],
+          [10,74,0.9,0.82,'R'],[10,48,1.9,0.70,'L'],[11,72,0.9,0.80,'R'],
+          [12,69,3.6,0.84,'R'],[12,41,3.6,0.72,'L'],[12,53,3.6,0.68,'L'],
+          [16,69,0.9,0.82,'R'],[16,41,1.9,0.70,'L'],[17,77,0.9,0.86,'R'],
+          [18,76,0.9,0.84,'R'],[18,43,1.9,0.70,'L'],[19,74,0.9,0.82,'R'],
+          [20,71,2.8,0.84,'R'],[20,43,2.8,0.72,'L'],
+          [24,79,0.9,0.88,'R'],[24,43,1.9,0.72,'L'],[25,79,0.9,0.88,'R'],
+          [26,77,0.9,0.86,'R'],[26,43,1.9,0.72,'L'],[27,74,0.9,0.82,'R'],
+          [28,76,3.6,0.88,'R'],[28,48,3.6,0.74,'L'],[28,55,3.6,0.70,'L'],
+          // Chorus (32 beats): Jingle bells, jingle bells, jingle all the way!
+          [32,64,0.9,0.82,'R'],[32,48,1.9,0.70,'L'],[32,55,1.9,0.66,'L'],[33,64,0.9,0.82,'R'],
+          [34,64,1.8,0.86,'R'],[34,43,1.9,0.68,'L'],[34,55,1.9,0.66,'L'],
+          [36,64,0.9,0.82,'R'],[36,48,1.9,0.70,'L'],[36,55,1.9,0.66,'L'],[37,64,0.9,0.82,'R'],
+          [38,64,1.8,0.86,'R'],[38,43,1.9,0.68,'L'],[38,55,1.9,0.66,'L'],
+          [40,64,0.9,0.84,'R'],[40,48,1.9,0.70,'L'],[40,55,1.9,0.66,'L'],[41,67,0.9,0.86,'R'],
+          [42,60,1.4,0.82,'R'],[42,43,1.9,0.68,'L'],[42,55,1.9,0.66,'L'],[43.5,62,0.45,0.80,'R'],
+          [44,64,3.6,0.88,'R'],[44,48,1.9,0.72,'L'],[44,55,1.9,0.68,'L'],[46,43,1.9,0.68,'L'],
+          [48,65,0.9,0.84,'R'],[48,41,1.9,0.72,'L'],[48,53,1.9,0.68,'L'],[49,65,0.9,0.84,'R'],
+          [50,65,1.4,0.86,'R'],[50,41,1.9,0.70,'L'],[51.5,65,0.45,0.82,'R'],
+          [52,65,0.9,0.84,'R'],[52,48,1.9,0.70,'L'],[53,64,0.9,0.82,'R'],
+          [54,64,0.9,0.82,'R'],[54,48,1.9,0.68,'L'],[55,64,0.45,0.80,'R'],[55.5,64,0.45,0.80,'R'],
+          [56,67,0.9,0.86,'R'],[56,43,1.9,0.72,'L'],[57,67,0.9,0.86,'R'],
+          [58,65,0.9,0.84,'R'],[58,43,1.9,0.72,'L'],[59,62,0.9,0.82,'R'],
+          [60,60,3.6,0.90,'R'],[60,48,3.6,0.78,'L'],[60,55,3.6,0.74,'L']
+        ],
+        verses: [
+          [
+            [0, 'Verse 1: Dashing through the snow, In a one-horse open sleigh,'],
+            [16, 'O’er the fields we go, Laughing all the way;'],
+            [32, 'Chorus: Jingle bells, jingle bells, Jingle all the way!'],
+            [48, 'Oh! what fun it is to ride In a one-horse open sleigh!']
+          ],
+          [
+            [0, 'Verse 2: Bells on bobtail ring, Making spirits bright,'],
+            [16, 'What fun it is to ride and sing A sleighing song tonight!'],
+            [32, 'Chorus: Jingle bells, jingle bells, Jingle all the way!'],
+            [48, 'Oh! what fun it is to ride In a one-horse open sleigh!']
+          ]
+        ]
+      }),
+
+      // -----------------------------------------------------------------------
+      // 21. FÜR ELISE (Ludwig van Beethoven, 1810)
+      // -----------------------------------------------------------------------
+      createStrophicSong({
+        id: 'fur_elise',
+        title: 'Für Elise (Bagatelle No. 25)',
+        composer: 'Ludwig van Beethoven (1810)',
+        category: 'classical',
+        bpm: 126,
+        verseBeats: 24,
+        baseNotes: [
+          [0.0,76,0.45,0.72,'R'],[0.5,75,0.45,0.70,'R'],
+          [1.0,76,0.45,0.74,'R'],[1.5,75,0.45,0.72,'R'],[2.0,76,0.45,0.76,'R'],
+          [2.5,71,0.45,0.74,'R'],[3.0,74,0.45,0.75,'R'],[3.5,72,0.45,0.72,'R'],
+          [4.0,69,1.40,0.78,'R'],[4.0,45,1.40,0.66,'L'],[4.5,52,1.00,0.62,'L'],[5.0,57,0.90,0.64,'L'],
+          [5.5,60,0.45,0.70,'R'],[6.0,64,0.45,0.72,'R'],[6.5,69,0.45,0.76,'R'],
+          [7.0,71,1.40,0.78,'R'],[7.0,40,1.40,0.66,'L'],[7.5,52,1.00,0.62,'L'],[8.0,56,0.90,0.64,'L'],
+          [8.5,64,0.45,0.70,'R'],[9.0,68,0.45,0.74,'R'],[9.5,71,0.45,0.76,'R'],
+          [10.0,72,1.40,0.80,'R'],[10.0,45,1.40,0.66,'L'],[10.5,52,1.00,0.62,'L'],[11.0,57,0.90,0.64,'L'],
+          [11.5,64,0.45,0.70,'R'],
+          [12.0,76,0.45,0.74,'R'],[12.5,75,0.45,0.72,'R'],
+          [13.0,76,0.45,0.76,'R'],[13.5,75,0.45,0.72,'R'],[14.0,76,0.45,0.78,'R'],
+          [14.5,71,0.45,0.74,'R'],[15.0,74,0.45,0.75,'R'],[15.5,72,0.45,0.72,'R'],
+          [16.0,69,1.40,0.80,'R'],[16.0,45,1.40,0.68,'L'],[16.5,52,1.00,0.62,'L'],[17.0,57,0.90,0.64,'L'],
+          [17.5,60,0.45,0.72,'R'],[18.0,64,0.45,0.74,'R'],[18.5,69,0.45,0.76,'R'],
+          [19.0,71,1.40,0.78,'R'],[19.0,40,1.40,0.68,'L'],[19.5,52,1.00,0.62,'L'],[20.0,56,0.90,0.64,'L'],
+          [20.5,64,0.45,0.72,'R'],[21.0,72,0.45,0.76,'R'],[21.5,71,0.45,0.74,'R'],
+          [22.0,69,1.90,0.82,'R'],[22.0,45,1.90,0.72,'L'],[22.5,52,1.40,0.66,'L'],[23.0,57,1.00,0.68,'L']
+        ],
+        verses: [
+          [[0, '♪ Section A: Poco moto in A Minor (Ludwig van Beethoven, 1810) ♪'], [12, '♪ Answering Cadence to Tonic A Minor ♪']],
+          [[0, '♪ Section A Reprise: Expressive Arpeggiated Theme ♪'], [12, '♪ Final Resolution ♪']]
+        ]
+      }),
+
+      // -----------------------------------------------------------------------
+      // 22. ODE TO JOY (Ludwig van Beethoven / Henry van Dyke Hymn Text)
+      // -----------------------------------------------------------------------
+      createStrophicSong({
         id: 'ode_to_joy',
-        title: 'Ode to Joy (Symphony No. 9)',
-        composer: 'Ludwig van Beethoven (1824)',
+        title: 'Ode to Joy (Joyful, Joyful, We Adore Thee)',
+        composer: 'Ludwig van Beethoven (1824) / Friedrich Schiller & Henry van Dyke',
+        category: 'classical',
         bpm: 116,
-        notes: buildSongNotes([
-          // Bar 1-4
-          [0, 64, 0.9, 0.82, 'R'], [0, 48, 1.9, 0.70, 'L'], [0, 55, 1.9, 0.66, 'L'],
-          [1, 64, 0.9, 0.80, 'R'],
-          [2, 65, 0.9, 0.82, 'R'], [2, 48, 1.9, 0.68, 'L'], [2, 57, 1.9, 0.65, 'L'],
-          [3, 67, 0.9, 0.85, 'R'],
-          [4, 67, 0.9, 0.85, 'R'], [4, 43, 1.9, 0.70, 'L'], [4, 55, 1.9, 0.66, 'L'],
-          [5, 65, 0.9, 0.82, 'R'],
-          [6, 64, 0.9, 0.80, 'R'], [6, 43, 1.9, 0.68, 'L'], [6, 59, 1.9, 0.65, 'L'],
-          [7, 62, 0.9, 0.78, 'R'],
-          [8, 60, 0.9, 0.82, 'R'], [8, 48, 1.9, 0.70, 'L'], [8, 55, 1.9, 0.66, 'L'],
-          [9, 60, 0.9, 0.80, 'R'],
-          [10, 62, 0.9, 0.82, 'R'], [10, 48, 1.9, 0.68, 'L'], [10, 55, 1.9, 0.65, 'L'],
-          [11, 64, 0.9, 0.84, 'R'],
-          [12, 64, 1.4, 0.86, 'R'], [12, 48, 1.9, 0.70, 'L'], [12, 55, 1.9, 0.66, 'L'],
-          [13.5, 62, 0.45, 0.76, 'R'],
-          [14, 62, 1.8, 0.80, 'R'], [14, 43, 1.9, 0.72, 'L'], [14, 55, 1.9, 0.68, 'L'],
-          // Bar 5-8
-          [16, 64, 0.9, 0.84, 'R'], [16, 48, 1.9, 0.70, 'L'], [16, 55, 1.9, 0.66, 'L'],
-          [17, 64, 0.9, 0.82, 'R'],
-          [18, 65, 0.9, 0.84, 'R'], [18, 48, 1.9, 0.68, 'L'], [18, 57, 1.9, 0.65, 'L'],
-          [19, 67, 0.9, 0.86, 'R'],
-          [20, 67, 0.9, 0.86, 'R'], [20, 43, 1.9, 0.70, 'L'], [20, 55, 1.9, 0.66, 'L'],
-          [21, 65, 0.9, 0.82, 'R'],
-          [22, 64, 0.9, 0.80, 'R'], [22, 43, 1.9, 0.68, 'L'], [22, 59, 1.9, 0.65, 'L'],
-          [23, 62, 0.9, 0.78, 'R'],
-          [24, 60, 0.9, 0.82, 'R'], [24, 48, 1.9, 0.70, 'L'], [24, 55, 1.9, 0.66, 'L'],
-          [25, 60, 0.9, 0.80, 'R'],
-          [26, 62, 0.9, 0.82, 'R'], [26, 43, 1.9, 0.70, 'L'], [26, 55, 1.9, 0.66, 'L'],
-          [27, 64, 0.9, 0.84, 'R'],
-          [28, 62, 1.4, 0.84, 'R'], [28, 43, 1.5, 0.70, 'L'], [28, 59, 1.5, 0.66, 'L'],
-          [29.5, 60, 0.45, 0.78, 'R'],
-          [30, 60, 1.9, 0.88, 'R'], [30, 48, 1.9, 0.76, 'L'], [30, 55, 1.9, 0.72, 'L']
-        ])
-      },
-      {
+        verseBeats: 32,
+        baseNotes: [
+          [0,64,0.9,0.82,'R'],[0,48,1.9,0.70,'L'],[0,55,1.9,0.66,'L'],[1,64,0.9,0.80,'R'],
+          [2,65,0.9,0.82,'R'],[2,48,1.9,0.68,'L'],[2,57,1.9,0.65,'L'],[3,67,0.9,0.85,'R'],
+          [4,67,0.9,0.85,'R'],[4,43,1.9,0.70,'L'],[4,55,1.9,0.66,'L'],[5,65,0.9,0.82,'R'],
+          [6,64,0.9,0.80,'R'],[6,43,1.9,0.68,'L'],[6,59,1.9,0.65,'L'],[7,62,0.9,0.78,'R'],
+          [8,60,0.9,0.82,'R'],[8,48,1.9,0.70,'L'],[8,55,1.9,0.66,'L'],[9,60,0.9,0.80,'R'],
+          [10,62,0.9,0.82,'R'],[10,48,1.9,0.68,'L'],[10,55,1.9,0.65,'L'],[11,64,0.9,0.84,'R'],
+          [12,64,1.4,0.86,'R'],[12,48,1.9,0.70,'L'],[12,55,1.9,0.66,'L'],[13.5,62,0.45,0.76,'R'],
+          [14,62,1.8,0.80,'R'],[14,43,1.9,0.72,'L'],[14,55,1.9,0.68,'L'],
+          [16,64,0.9,0.84,'R'],[16,48,1.9,0.70,'L'],[16,55,1.9,0.66,'L'],[17,64,0.9,0.82,'R'],
+          [18,65,0.9,0.84,'R'],[18,48,1.9,0.68,'L'],[18,57,1.9,0.65,'L'],[19,67,0.9,0.86,'R'],
+          [20,67,0.9,0.86,'R'],[20,43,1.9,0.70,'L'],[20,55,1.9,0.66,'L'],[21,65,0.9,0.82,'R'],
+          [22,64,0.9,0.80,'R'],[22,43,1.9,0.68,'L'],[22,59,1.9,0.65,'L'],[23,62,0.9,0.78,'R'],
+          [24,60,0.9,0.82,'R'],[24,48,1.9,0.70,'L'],[24,55,1.9,0.66,'L'],[25,60,0.9,0.80,'R'],
+          [26,62,0.9,0.82,'R'],[26,43,1.9,0.70,'L'],[26,55,1.9,0.66,'L'],[27,64,0.9,0.84,'R'],
+          [28,62,1.4,0.84,'R'],[28,43,1.5,0.70,'L'],[28,59,1.5,0.66,'L'],[29.5,60,0.45,0.78,'R'],
+          [30,60,1.9,0.88,'R'],[30,48,1.9,0.76,'L'],[30,55,1.9,0.72,'L']
+        ],
+        verses: [
+          [
+            [0, 'Verse 1: Joyful, joyful, we adore Thee, God of glory, Lord of love;'],
+            [16, 'Hearts unfold like flow’rs before Thee, Op’ning to the sun above.']
+          ],
+          [
+            [0, 'Verse 2: All Thy works with joy surround Thee, Earth and heav’n reflect Thy rays,'],
+            [16, 'Stars and angels sing around Thee, Center of unbroken praise.']
+          ]
+        ]
+      }),
+
+      // -----------------------------------------------------------------------
+      // 23. MINUET IN G MAJOR (Christian Petzold / J.S. Bach Notebook)
+      // -----------------------------------------------------------------------
+      createStrophicSong({
         id: 'minuet_in_g',
         title: 'Minuet in G Major (BWV Anh. 114)',
         composer: 'Christian Petzold / J.S. Bach Notebook (1725)',
+        category: 'classical',
         bpm: 112,
-        notes: buildSongNotes([
-          // Bar 1 (3/4)
-          [0, 74, 0.95, 0.82, 'R'], [0, 55, 1.9, 0.70, 'L'], [0, 59, 1.9, 0.66, 'L'],
-          [1, 67, 0.45, 0.74, 'R'], [1.5, 69, 0.45, 0.76, 'R'],
-          [2, 71, 0.45, 0.78, 'R'], [2, 57, 0.95, 0.68, 'L'], [2.5, 72, 0.45, 0.80, 'R'],
-          // Bar 2
-          [3, 74, 0.95, 0.84, 'R'], [3, 59, 2.8, 0.72, 'L'],
-          [4, 67, 0.95, 0.76, 'R'], [5, 67, 0.95, 0.76, 'R'],
-          // Bar 3
-          [6, 76, 0.95, 0.84, 'R'], [6, 60, 2.8, 0.72, 'L'],
-          [7, 72, 0.45, 0.76, 'R'], [7.5, 74, 0.45, 0.78, 'R'],
-          [8, 76, 0.45, 0.80, 'R'], [8.5, 78, 0.45, 0.82, 'R'],
-          // Bar 4
-          [9, 79, 0.95, 0.86, 'R'], [9, 59, 2.8, 0.72, 'L'],
-          [10, 67, 0.95, 0.76, 'R'], [11, 67, 0.95, 0.76, 'R'],
-          // Bar 5
-          [12, 72, 0.95, 0.82, 'R'], [12, 57, 2.8, 0.72, 'L'],
-          [13, 74, 0.45, 0.78, 'R'], [13.5, 72, 0.45, 0.76, 'R'],
-          [14, 71, 0.45, 0.76, 'R'], [14.5, 69, 0.45, 0.74, 'R'],
-          // Bar 6
-          [15, 71, 0.95, 0.82, 'R'], [15, 55, 2.8, 0.72, 'L'],
-          [16, 72, 0.45, 0.78, 'R'], [16.5, 71, 0.45, 0.76, 'R'],
-          [17, 69, 0.45, 0.74, 'R'], [17.5, 67, 0.45, 0.72, 'R'],
-          // Bar 7
-          [18, 66, 0.95, 0.78, 'R'], [18, 50, 1.9, 0.70, 'L'],
-          [19, 67, 0.45, 0.76, 'R'], [19.5, 69, 0.45, 0.78, 'R'],
-          [20, 71, 0.45, 0.80, 'R'], [20, 55, 0.95, 0.68, 'L'], [20.5, 67, 0.45, 0.74, 'R'],
-          // Bar 8
-          [21, 69, 2.6, 0.84, 'R'], [21, 50, 0.95, 0.72, 'L'], [22, 45, 0.95, 0.68, 'L'], [23, 50, 0.95, 0.72, 'L']
-        ])
-      },
-      {
+        verseBeats: 24,
+        baseNotes: [
+          [0,74,0.95,0.82,'R'],[0,55,1.9,0.70,'L'],[0,59,1.9,0.66,'L'],
+          [1,67,0.45,0.74,'R'],[1.5,69,0.45,0.76,'R'],[2,71,0.45,0.78,'R'],[2,57,0.95,0.68,'L'],[2.5,72,0.45,0.80,'R'],
+          [3,74,0.95,0.84,'R'],[3,59,2.8,0.72,'L'],[4,67,0.95,0.76,'R'],[5,67,0.95,0.76,'R'],
+          [6,76,0.95,0.84,'R'],[6,60,2.8,0.72,'L'],[7,72,0.45,0.76,'R'],[7.5,74,0.45,0.78,'R'],[8,76,0.45,0.80,'R'],[8.5,78,0.45,0.82,'R'],
+          [9,79,0.95,0.86,'R'],[9,59,2.8,0.72,'L'],[10,67,0.95,0.76,'R'],[11,67,0.95,0.76,'R'],
+          [12,72,0.95,0.82,'R'],[12,57,2.8,0.72,'L'],[13,74,0.45,0.78,'R'],[13.5,72,0.45,0.76,'R'],[14,71,0.45,0.76,'R'],[14.5,69,0.45,0.74,'R'],
+          [15,71,0.95,0.82,'R'],[15,55,2.8,0.72,'L'],[16,72,0.45,0.78,'R'],[16.5,71,0.45,0.76,'R'],[17,69,0.45,0.74,'R'],[17.5,67,0.45,0.72,'R'],
+          [18,66,0.95,0.78,'R'],[18,50,1.9,0.70,'L'],[19,67,0.45,0.76,'R'],[19.5,69,0.45,0.78,'R'],
+          [20,71,0.45,0.80,'R'],[20,55,0.95,0.68,'L'],[20.5,67,0.45,0.74,'R'],
+          [21,69,2.6,0.84,'R'],[21,50,0.95,0.72,'L'],[22,45,0.95,0.68,'L'],[23,50,0.95,0.72,'L']
+        ],
+        verses: [
+          [[0, '♪ Minuet in G Major (Notebook for Anna Magdalena Bach, 1725) ♪'], [12, '♪ Graceful Baroque Counterpoint ♪']],
+          [[0, '♪ Minuet Repeat (Da Capo) ♪'], [12, '♪ Cadence in D & G Major ♪']]
+        ]
+      }),
+
+      // -----------------------------------------------------------------------
+      // 24. TWINKLE, TWINKLE, LITTLE STAR (Jane Taylor, 1806 / 1761 French Tune)
+      // -----------------------------------------------------------------------
+      createStrophicSong({
         id: 'twinkle_twinkle',
         title: 'Twinkle, Twinkle, Little Star',
-        composer: 'Traditional French Melody (1761)',
+        composer: 'Jane Taylor (1806) / Traditional French Melody (1761)',
+        category: 'classical',
         bpm: 108,
-        notes: buildSongNotes([
-          // C C G G A A G
-          [0, 60, 0.9, 0.80, 'R'], [0, 48, 0.9, 0.66, 'L'], [0.5, 55, 0.45, 0.60, 'L'],
-          [1, 60, 0.9, 0.80, 'R'], [1, 52, 0.9, 0.64, 'L'],
-          [2, 67, 0.9, 0.84, 'R'], [2, 48, 0.9, 0.66, 'L'],
-          [3, 67, 0.9, 0.84, 'R'], [3, 52, 0.9, 0.64, 'L'],
-          [4, 69, 0.9, 0.86, 'R'], [4, 53, 0.9, 0.68, 'L'],
-          [5, 69, 0.9, 0.86, 'R'], [5, 57, 0.9, 0.66, 'L'],
-          [6, 67, 1.8, 0.84, 'R'], [6, 48, 1.8, 0.70, 'L'], [6, 55, 1.8, 0.66, 'L'],
-          // F F E E D D C
-          [8, 65, 0.9, 0.82, 'R'], [8, 41, 0.9, 0.68, 'L'],
-          [9, 65, 0.9, 0.82, 'R'], [9, 53, 0.9, 0.64, 'L'],
-          [10, 64, 0.9, 0.80, 'R'], [10, 48, 0.9, 0.68, 'L'],
-          [11, 64, 0.9, 0.80, 'R'], [11, 55, 0.9, 0.64, 'L'],
-          [12, 62, 0.9, 0.78, 'R'], [12, 43, 0.9, 0.68, 'L'],
-          [13, 62, 0.9, 0.78, 'R'], [13, 55, 0.9, 0.64, 'L'],
-          [14, 60, 1.8, 0.86, 'R'], [14, 48, 1.8, 0.72, 'L'], [14, 52, 1.8, 0.68, 'L'],
-          // G G F F E E D
-          [16, 67, 0.9, 0.82, 'R'], [16, 48, 0.9, 0.68, 'L'],
-          [17, 67, 0.9, 0.82, 'R'], [17, 55, 0.9, 0.64, 'L'],
-          [18, 65, 0.9, 0.80, 'R'], [18, 53, 0.9, 0.68, 'L'],
-          [19, 65, 0.9, 0.80, 'R'], [19, 57, 0.9, 0.64, 'L'],
-          [20, 64, 0.9, 0.80, 'R'], [20, 48, 0.9, 0.68, 'L'],
-          [21, 64, 0.9, 0.80, 'R'], [21, 55, 0.9, 0.64, 'L'],
-          [22, 62, 1.8, 0.82, 'R'], [22, 43, 1.8, 0.70, 'L'], [22, 55, 1.8, 0.66, 'L']
-        ])
-      },
-      {
-        id: 'greensleeves',
-        title: 'Greensleeves',
-        composer: 'Traditional 16th-Century English Folk Tune',
-        bpm: 102,
-        notes: buildSongNotes([
-          // Pickup A4
-          [0, 69, 0.9, 0.76, 'R'],
-          // Bar 1 (A minor): C5 D5 E5 F5 E5
-          [1, 72, 1.9, 0.82, 'R'], [1, 45, 2.8, 0.68, 'L'], [2, 52, 1.9, 0.64, 'L'], [2.5, 57, 1.4, 0.64, 'L'],
-          [3, 74, 0.9, 0.78, 'R'],
-          // Bar 2 (G major)
-          [4, 76, 1.4, 0.84, 'R'], [4, 43, 2.8, 0.68, 'L'], [5, 50, 1.9, 0.64, 'L'], [5.5, 55, 1.4, 0.64, 'L'],
-          [5.5, 77, 0.45, 0.78, 'R'], [6, 76, 0.9, 0.80, 'R'],
-          // Bar 3 (F major / D minor)
-          [7, 74, 1.9, 0.82, 'R'], [7, 43, 2.8, 0.68, 'L'], [8, 50, 1.9, 0.64, 'L'],
-          [9, 71, 0.9, 0.78, 'R'],
-          // Bar 4
-          [10, 67, 1.4, 0.78, 'R'], [10, 40, 2.8, 0.68, 'L'], [11, 52, 1.9, 0.64, 'L'],
-          [11.5, 69, 0.45, 0.76, 'R'], [12, 71, 0.9, 0.78, 'R'],
-          // Bar 5 (A minor)
-          [13, 72, 1.9, 0.82, 'R'], [13, 45, 2.8, 0.70, 'L'], [14, 52, 1.9, 0.64, 'L'],
-          [15, 69, 0.9, 0.76, 'R'],
-          // Bar 6 (E7)
-          [16, 69, 1.4, 0.78, 'R'], [16, 40, 2.8, 0.70, 'L'], [17, 52, 1.9, 0.64, 'L'],
-          [17.5, 68, 0.45, 0.76, 'R'], [18, 69, 0.9, 0.78, 'R'],
-          // Bar 7-8
-          [19, 71, 1.9, 0.82, 'R'], [19, 40, 2.8, 0.68, 'L'], [20, 52, 1.9, 0.64, 'L'],
-          [21, 68, 0.9, 0.78, 'R'],
-          [22, 64, 2.4, 0.80, 'R'], [22, 45, 2.6, 0.72, 'L'], [22.5, 52, 2.1, 0.66, 'L'], [23, 57, 1.6, 0.68, 'L']
-        ])
-      },
-      {
+        verseBeats: 48,
+        baseNotes: [
+          // A1: Twinkle, twinkle, little star, How I wonder what you are
+          [0,60,0.9,0.80,'R'],[0,48,0.9,0.66,'L'],[0.5,55,0.45,0.60,'L'],
+          [1,60,0.9,0.80,'R'],[1,52,0.9,0.64,'L'],
+          [2,67,0.9,0.84,'R'],[2,48,0.9,0.66,'L'],[3,67,0.9,0.84,'R'],[3,52,0.9,0.64,'L'],
+          [4,69,0.9,0.86,'R'],[4,53,0.9,0.68,'L'],[5,69,0.9,0.86,'R'],[5,57,0.9,0.66,'L'],
+          [6,67,1.8,0.84,'R'],[6,48,1.8,0.70,'L'],[6,55,1.8,0.66,'L'],
+          [8,65,0.9,0.82,'R'],[8,41,0.9,0.68,'L'],[9,65,0.9,0.82,'R'],[9,53,0.9,0.64,'L'],
+          [10,64,0.9,0.80,'R'],[10,48,0.9,0.68,'L'],[11,64,0.9,0.80,'R'],[11,55,0.9,0.64,'L'],
+          [12,62,0.9,0.78,'R'],[12,43,0.9,0.68,'L'],[13,62,0.9,0.78,'R'],[13,55,0.9,0.64,'L'],
+          [14,60,1.8,0.86,'R'],[14,48,1.8,0.72,'L'],[14,52,1.8,0.68,'L'],
+          // B: Up above the world so high, Like a diamond in the sky
+          [16,67,0.9,0.82,'R'],[16,48,0.9,0.68,'L'],[17,67,0.9,0.82,'R'],[17,55,0.9,0.64,'L'],
+          [18,65,0.9,0.80,'R'],[18,53,0.9,0.68,'L'],[19,65,0.9,0.80,'R'],[19,57,0.9,0.64,'L'],
+          [20,64,0.9,0.80,'R'],[20,48,0.9,0.68,'L'],[21,64,0.9,0.80,'R'],[21,55,0.9,0.64,'L'],
+          [22,62,1.8,0.82,'R'],[22,43,1.8,0.70,'L'],[22,55,1.8,0.66,'L'],
+          [24,67,0.9,0.82,'R'],[24,48,0.9,0.68,'L'],[25,67,0.9,0.82,'R'],[25,55,0.9,0.64,'L'],
+          [26,65,0.9,0.80,'R'],[26,53,0.9,0.68,'L'],[27,65,0.9,0.80,'R'],[27,57,0.9,0.64,'L'],
+          [28,64,0.9,0.80,'R'],[28,48,0.9,0.68,'L'],[29,64,0.9,0.80,'R'],[29,55,0.9,0.64,'L'],
+          [30,62,1.8,0.82,'R'],[30,43,1.8,0.70,'L'],[30,55,1.8,0.66,'L'],
+          // A2: Twinkle, twinkle, little star, How I wonder what you are
+          [32,60,0.9,0.80,'R'],[32,48,0.9,0.66,'L'],[33,60,0.9,0.80,'R'],[33,52,0.9,0.64,'L'],
+          [34,67,0.9,0.84,'R'],[34,48,0.9,0.66,'L'],[35,67,0.9,0.84,'R'],[35,52,0.9,0.64,'L'],
+          [36,69,0.9,0.86,'R'],[36,53,0.9,0.68,'L'],[37,69,0.9,0.86,'R'],[37,57,0.9,0.66,'L'],
+          [38,67,1.8,0.84,'R'],[38,48,1.8,0.70,'L'],[38,55,1.8,0.66,'L'],
+          [40,65,0.9,0.82,'R'],[40,41,0.9,0.68,'L'],[41,65,0.9,0.82,'R'],[41,53,0.9,0.64,'L'],
+          [42,64,0.9,0.80,'R'],[42,48,0.9,0.68,'L'],[43,64,0.9,0.80,'R'],[43,55,0.9,0.64,'L'],
+          [44,62,0.9,0.78,'R'],[44,43,0.9,0.68,'L'],[45,62,0.9,0.78,'R'],[45,55,0.9,0.64,'L'],
+          [46,60,1.8,0.88,'R'],[46,48,1.8,0.74,'L'],[46,55,1.8,0.70,'L']
+        ],
+        verses: [
+          [
+            [0, 'Verse 1: Twinkle, twinkle, little star, How I wonder what you are!'],
+            [16, 'Up above the world so high, Like a diamond in the sky.'],
+            [32, 'Twinkle, twinkle, little star, How I wonder what you are!']
+          ],
+          [
+            [0, 'Verse 2: When the blazing sun is gone, When he nothing shines upon,'],
+            [16, 'Then you show your little light, Twinkle, twinkle, all the night.'],
+            [32, 'Twinkle, twinkle, little star, How I wonder what you are!']
+          ]
+        ]
+      }),
+
+      // -----------------------------------------------------------------------
+      // 25. CANON IN D MAJOR (Johann Pachelbel, c. 1680)
+      // -----------------------------------------------------------------------
+      createStrophicSong({
         id: 'canon_in_d',
-        title: 'Canon in D Major (Progression & Melody)',
+        title: 'Canon in D Major',
         composer: 'Johann Pachelbel (c. 1680)',
+        category: 'classical',
         bpm: 84,
-        notes: buildSongNotes([
-          // D Major -> A Major -> B Minor -> F# Minor
-          [0, 50, 1.9, 0.72, 'L'], [0.5, 57, 1.4, 0.66, 'L'], [1.0, 62, 1.0, 0.68, 'L'],
-          [0, 78, 1.9, 0.82, 'R'], [1.0, 74, 0.9, 0.76, 'R'],
-          [2, 45, 1.9, 0.72, 'L'], [2.5, 52, 1.4, 0.66, 'L'], [3.0, 57, 1.0, 0.68, 'L'],
-          [2, 76, 1.9, 0.82, 'R'], [3.0, 73, 0.9, 0.76, 'R'],
-          [4, 47, 1.9, 0.72, 'L'], [4.5, 54, 1.4, 0.66, 'L'], [5.0, 59, 1.0, 0.68, 'L'],
-          [4, 74, 1.9, 0.82, 'R'], [5.0, 71, 0.9, 0.76, 'R'],
-          [6, 42, 1.9, 0.72, 'L'], [6.5, 49, 1.4, 0.66, 'L'], [7.0, 54, 1.0, 0.68, 'L'],
-          [6, 73, 1.9, 0.80, 'R'], [7.0, 69, 0.9, 0.76, 'R'],
-          // G Major -> D Major -> G Major -> A Major
-          [8, 43, 1.9, 0.72, 'L'], [8.5, 50, 1.4, 0.66, 'L'], [9.0, 55, 1.0, 0.68, 'L'],
-          [8, 71, 1.9, 0.82, 'R'], [9.0, 67, 0.9, 0.76, 'R'],
-          [10, 38, 1.9, 0.72, 'L'], [10.5, 45, 1.4, 0.66, 'L'], [11.0, 50, 1.0, 0.68, 'L'],
-          [10, 69, 1.9, 0.82, 'R'], [11.0, 66, 0.9, 0.76, 'R'],
-          [12, 43, 1.9, 0.72, 'L'], [12.5, 50, 1.4, 0.66, 'L'], [13.0, 55, 1.0, 0.68, 'L'],
-          [12, 71, 1.9, 0.82, 'R'], [13.0, 74, 0.9, 0.78, 'R'],
-          [14, 45, 1.9, 0.74, 'L'], [14.5, 52, 1.4, 0.68, 'L'], [15.0, 57, 1.0, 0.70, 'L'],
-          [14, 73, 1.4, 0.84, 'R'], [15.5, 76, 0.45, 0.80, 'R'],
-          // Flowing 8th-note variation
-          [16, 50, 1.9, 0.74, 'L'], [16.5, 57, 1.4, 0.68, 'L'],
-          [16, 74, 0.48, 0.82, 'R'], [16.5, 73, 0.48, 0.78, 'R'], [17, 74, 0.48, 0.82, 'R'], [17.5, 66, 0.48, 0.76, 'R'],
-          [18, 45, 1.9, 0.72, 'L'], [18.5, 52, 1.4, 0.66, 'L'],
-          [18, 69, 0.48, 0.80, 'R'], [18.5, 67, 0.48, 0.78, 'R'], [19, 66, 0.48, 0.78, 'R'], [19.5, 64, 0.48, 0.76, 'R'],
-          [20, 50, 2.4, 0.78, 'L'], [20, 57, 2.4, 0.72, 'L'], [20, 62, 2.4, 0.74, 'L'], [20, 74, 2.4, 0.88, 'R']
-        ])
-      },
-      {
+        verseBeats: 22,
+        baseNotes: [
+          [0,50,1.9,0.72,'L'],[0.5,57,1.4,0.66,'L'],[1.0,62,1.0,0.68,'L'],[0,78,1.9,0.82,'R'],[1.0,74,0.9,0.76,'R'],
+          [2,45,1.9,0.72,'L'],[2.5,52,1.4,0.66,'L'],[3.0,57,1.0,0.68,'L'],[2,76,1.9,0.82,'R'],[3.0,73,0.9,0.76,'R'],
+          [4,47,1.9,0.72,'L'],[4.5,54,1.4,0.66,'L'],[5.0,59,1.0,0.68,'L'],[4,74,1.9,0.82,'R'],[5.0,71,0.9,0.76,'R'],
+          [6,42,1.9,0.72,'L'],[6.5,49,1.4,0.66,'L'],[7.0,54,1.0,0.68,'L'],[6,73,1.9,0.80,'R'],[7.0,69,0.9,0.76,'R'],
+          [8,43,1.9,0.72,'L'],[8.5,50,1.4,0.66,'L'],[9.0,55,1.0,0.68,'L'],[8,71,1.9,0.82,'R'],[9.0,67,0.9,0.76,'R'],
+          [10,38,1.9,0.72,'L'],[10.5,45,1.4,0.66,'L'],[11.0,50,1.0,0.68,'L'],[10,69,1.9,0.82,'R'],[11.0,66,0.9,0.76,'R'],
+          [12,43,1.9,0.72,'L'],[12.5,50,1.4,0.66,'L'],[13.0,55,1.0,0.68,'L'],[12,71,1.9,0.82,'R'],[13.0,74,0.9,0.78,'R'],
+          [14,45,1.9,0.74,'L'],[14.5,52,1.4,0.68,'L'],[15.0,57,1.0,0.70,'L'],[14,73,1.4,0.84,'R'],[15.5,76,0.45,0.80,'R'],
+          [16,50,1.9,0.74,'L'],[16.5,57,1.4,0.68,'L'],[16,74,0.48,0.82,'R'],[16.5,73,0.48,0.78,'R'],[17,74,0.48,0.82,'R'],[17.5,66,0.48,0.76,'R'],
+          [18,45,1.9,0.72,'L'],[18.5,52,1.4,0.66,'L'],[18,69,0.48,0.80,'R'],[18.5,67,0.48,0.78,'R'],[19,66,0.48,0.78,'R'],[19.5,64,0.48,0.76,'R'],
+          [20,50,1.9,0.78,'L'],[20,57,1.9,0.72,'L'],[20,62,1.9,0.74,'L'],[20,74,1.9,0.88,'R']
+        ],
+        verses: [
+          [[0, '♪ Canon in D Major: Ground Bass & Chorale (Johann Pachelbel) ♪'], [16, '♪ Flowing Counterpoint Variation ♪']],
+          [[0, '♪ Canon Cycle II: D - A - Bm - F#m - G - D - G - A ♪'], [16, '♪ Final D Major Resolution ♪']]
+        ]
+      }),
+
+      // -----------------------------------------------------------------------
+      // 26. AMAZING GRACE (John Newton, 1779 / New Britain, 1835)
+      // -----------------------------------------------------------------------
+      createStrophicSong({
         id: 'amazing_grace',
         title: 'Amazing Grace',
-        composer: 'Traditional Hymn (New Britain, 1835)',
+        composer: 'John Newton (1779) / New Britain (1835)',
+        category: 'classical',
         bpm: 92,
-        notes: buildSongNotes([
-          // Pickup D4
-          [0, 62, 0.9, 0.76, 'R'],
-          // Bar 1 (G major): G4 B4-G4
-          [1, 67, 1.9, 0.82, 'R'], [1, 43, 2.8, 0.68, 'L'], [2, 50, 1.9, 0.64, 'L'], [2, 55, 1.9, 0.64, 'L'],
-          [3, 71, 0.45, 0.80, 'R'], [3.5, 67, 0.45, 0.76, 'R'],
-          // Bar 2: B4 A4
-          [4, 71, 1.9, 0.84, 'R'], [4, 43, 2.8, 0.68, 'L'], [5, 50, 1.9, 0.64, 'L'],
-          [6, 69, 0.9, 0.78, 'R'],
-          // Bar 3 (C major): G4 E4
-          [7, 67, 1.9, 0.82, 'R'], [7, 48, 2.8, 0.70, 'L'], [8, 52, 1.9, 0.66, 'L'], [8, 55, 1.9, 0.66, 'L'],
-          [9, 64, 0.9, 0.78, 'R'],
-          // Bar 4 (G major): D4 D4
-          [10, 62, 1.9, 0.78, 'R'], [10, 43, 2.8, 0.68, 'L'], [11, 50, 1.9, 0.64, 'L'],
-          [12, 62, 0.9, 0.76, 'R'],
-          // Bar 5: G4 B4-G4
-          [13, 67, 1.9, 0.84, 'R'], [13, 43, 2.8, 0.70, 'L'], [14, 50, 1.9, 0.64, 'L'],
-          [15, 71, 0.45, 0.80, 'R'], [15.5, 67, 0.45, 0.78, 'R'],
-          // Bar 6 (D major): B4 A4 D5
-          [16, 71, 1.9, 0.84, 'R'], [16, 50, 2.8, 0.70, 'L'], [17, 54, 1.9, 0.66, 'L'],
-          [18, 69, 0.9, 0.80, 'R'],
-          [19, 74, 2.8, 0.88, 'R'], [19, 43, 2.8, 0.72, 'L'], [20, 50, 1.9, 0.68, 'L'], [20, 59, 1.9, 0.68, 'L']
-        ])
-      },
-      {
-        id: 'silent_night',
-        title: 'Silent Night (Stille Nacht)',
-        composer: 'Franz Xaver Gruber (1818)',
-        bpm: 88,
-        notes: buildSongNotes([
-          // G4. A4 G4 E4. (C major)
-          [0, 67, 1.4, 0.80, 'R'], [0, 48, 2.8, 0.68, 'L'], [1, 52, 1.8, 0.64, 'L'], [2, 55, 0.9, 0.64, 'L'],
-          [1.5, 69, 0.45, 0.76, 'R'], [2, 67, 0.9, 0.78, 'R'],
-          [3, 64, 2.8, 0.80, 'R'], [3, 48, 2.8, 0.68, 'L'], [4, 52, 1.8, 0.64, 'L'], [5, 55, 0.9, 0.64, 'L'],
-          // Repeat G4. A4 G4 E4.
-          [6, 67, 1.4, 0.82, 'R'], [6, 48, 2.8, 0.68, 'L'], [7, 52, 1.8, 0.64, 'L'], [8, 55, 0.9, 0.64, 'L'],
-          [7.5, 69, 0.45, 0.78, 'R'], [8, 67, 0.9, 0.80, 'R'],
-          [9, 64, 2.8, 0.80, 'R'], [9, 48, 2.8, 0.68, 'L'], [10, 52, 1.8, 0.64, 'L'], [11, 55, 0.9, 0.64, 'L'],
-          // D5 D5 B4. (G major)
-          [12, 74, 1.9, 0.86, 'R'], [12, 43, 2.8, 0.70, 'L'], [13, 50, 1.8, 0.66, 'L'], [14, 55, 0.9, 0.66, 'L'],
-          [14, 74, 0.9, 0.84, 'R'],
-          [15, 71, 2.8, 0.82, 'R'], [15, 43, 2.8, 0.70, 'L'], [16, 50, 1.8, 0.66, 'L'], [17, 59, 0.9, 0.66, 'L'],
-          // C5 C5 G4. (C major)
-          [18, 72, 1.9, 0.86, 'R'], [18, 48, 2.8, 0.72, 'L'], [19, 52, 1.8, 0.66, 'L'], [20, 55, 0.9, 0.66, 'L'],
-          [20, 72, 0.9, 0.84, 'R'],
-          [21, 67, 2.8, 0.84, 'R'], [21, 48, 2.8, 0.72, 'L'], [22, 52, 1.8, 0.68, 'L'], [23, 55, 0.9, 0.68, 'L']
-        ])
-      },
-      {
-        id: 'jingle_bells',
-        title: 'Jingle Bells (Chorus)',
-        composer: 'James Lord Pierpont (1857)',
-        bpm: 132,
-        notes: buildSongNotes([
-          // E E E - E E E - E G C D E
-          [0, 64, 0.9, 0.82, 'R'], [0, 48, 1.9, 0.70, 'L'], [0, 55, 1.9, 0.66, 'L'],
-          [1, 64, 0.9, 0.82, 'R'],
-          [2, 64, 1.8, 0.86, 'R'], [2, 43, 1.9, 0.68, 'L'], [2, 55, 1.9, 0.66, 'L'],
-          [4, 64, 0.9, 0.82, 'R'], [4, 48, 1.9, 0.70, 'L'], [4, 55, 1.9, 0.66, 'L'],
-          [5, 64, 0.9, 0.82, 'R'],
-          [6, 64, 1.8, 0.86, 'R'], [6, 43, 1.9, 0.68, 'L'], [6, 55, 1.9, 0.66, 'L'],
-          [8, 64, 0.9, 0.84, 'R'], [8, 48, 1.9, 0.70, 'L'], [8, 55, 1.9, 0.66, 'L'],
-          [9, 67, 0.9, 0.86, 'R'],
-          [10, 60, 1.4, 0.82, 'R'], [10, 43, 1.9, 0.68, 'L'], [10, 55, 1.9, 0.66, 'L'],
-          [11.5, 62, 0.45, 0.80, 'R'],
-          [12, 64, 3.6, 0.88, 'R'], [12, 48, 1.9, 0.72, 'L'], [12, 55, 1.9, 0.68, 'L'],
-          [14, 43, 1.9, 0.68, 'L'], [14, 55, 1.9, 0.66, 'L'],
-          // F F F F F E E E E D D E D G
-          [16, 65, 0.9, 0.84, 'R'], [16, 41, 1.9, 0.72, 'L'], [16, 53, 1.9, 0.68, 'L'],
-          [17, 65, 0.9, 0.84, 'R'],
-          [18, 65, 1.4, 0.86, 'R'], [18, 41, 1.9, 0.70, 'L'], [18, 53, 1.9, 0.68, 'L'],
-          [19.5, 65, 0.45, 0.82, 'R'],
-          [20, 65, 0.9, 0.84, 'R'], [20, 48, 1.9, 0.70, 'L'], [20, 55, 1.9, 0.66, 'L'],
-          [21, 64, 0.9, 0.82, 'R'],
-          [22, 64, 0.9, 0.82, 'R'], [22, 48, 1.9, 0.68, 'L'], [22, 55, 1.9, 0.66, 'L'],
-          [23, 64, 0.45, 0.80, 'R'], [23.5, 64, 0.45, 0.80, 'R'],
-          [24, 62, 0.9, 0.82, 'R'], [24, 43, 1.9, 0.70, 'L'], [24, 55, 1.9, 0.66, 'L'],
-          [25, 62, 0.9, 0.82, 'R'],
-          [26, 64, 0.9, 0.84, 'R'], [26, 43, 1.9, 0.70, 'L'], [26, 59, 1.9, 0.66, 'L'],
-          [27, 62, 1.8, 0.84, 'R'],
-          [29, 67, 1.8, 0.88, 'R'], [29, 48, 1.8, 0.74, 'L'], [29, 55, 1.8, 0.70, 'L']
-        ])
-      },
-      {
+        verseBeats: 22,
+        baseNotes: [
+          [0,62,0.9,0.76,'R'],
+          [1,67,1.9,0.82,'R'],[1,43,2.8,0.68,'L'],[2,50,1.9,0.64,'L'],[2,55,1.9,0.64,'L'],[3,71,0.45,0.80,'R'],[3.5,67,0.45,0.76,'R'],
+          [4,71,1.9,0.84,'R'],[4,43,2.8,0.68,'L'],[5,50,1.9,0.64,'L'],[6,69,0.9,0.78,'R'],
+          [7,67,1.9,0.82,'R'],[7,48,2.8,0.70,'L'],[8,52,1.9,0.66,'L'],[8,55,1.9,0.66,'L'],[9,64,0.9,0.78,'R'],
+          [10,62,1.9,0.78,'R'],[10,43,2.8,0.68,'L'],[11,50,1.9,0.64,'L'],[12,62,0.9,0.76,'R'],
+          [13,67,1.9,0.84,'R'],[13,43,2.8,0.70,'L'],[14,50,1.9,0.64,'L'],[15,71,0.45,0.80,'R'],[15.5,67,0.45,0.78,'R'],
+          [16,71,1.9,0.84,'R'],[16,50,2.8,0.70,'L'],[17,54,1.9,0.66,'L'],[18,69,0.9,0.80,'R'],
+          [19,67,2.8,0.88,'R'],[19,43,2.8,0.74,'L'],[20,50,1.9,0.70,'L'],[20,59,1.9,0.70,'L']
+        ],
+        verses: [
+          [
+            [0, 'Verse 1: Amazing grace! How sweet the sound That saved a wretch like me!'],
+            [12, 'I once was lost, but now am found; Was blind, but now I see.']
+          ],
+          [
+            [0, 'Verse 2: ’Twas grace that taught my heart to fear, And grace my fears relieved;'],
+            [12, 'How precious did that grace appear The hour I first believed!']
+          ],
+          [
+            [0, 'Verse 3: Through many dangers, toils and snares, I have already come;'],
+            [12, '’Tis grace hath brought me safe thus far, And grace will lead me home.']
+          ]
+        ]
+      }),
+
+      // -----------------------------------------------------------------------
+      // 27. THE ENTERTAINER (Scott Joplin, 1902)
+      // -----------------------------------------------------------------------
+      createStrophicSong({
         id: 'the_entertainer',
-        title: 'The Entertainer (Opening & Theme)',
+        title: 'The Entertainer (Ragtime Two-Step)',
         composer: 'Scott Joplin (1902)',
+        category: 'classical',
         bpm: 112,
-        notes: buildSongNotes([
-          // Iconic Ragtime Octave Intro (D5 E5 C5 A4 B4 G4 -> D4 E4 C4 A3 B3 G3)
-          [0.0, 74, 0.45, 0.84, 'R'], [0.5, 76, 0.45, 0.84, 'R'], [1.0, 72, 0.45, 0.82, 'R'],
-          [1.5, 69, 0.90, 0.84, 'R'], [2.5, 71, 0.45, 0.82, 'R'], [3.0, 67, 0.90, 0.86, 'R'],
-          [4.0, 62, 0.45, 0.80, 'R'], [4.5, 64, 0.45, 0.80, 'R'], [5.0, 60, 0.45, 0.78, 'R'],
-          [5.5, 57, 0.90, 0.80, 'R'], [6.5, 59, 0.45, 0.78, 'R'], [7.0, 55, 0.90, 0.82, 'R'],
-          [4.0, 50, 0.45, 0.70, 'L'], [4.5, 52, 0.45, 0.70, 'L'], [5.0, 48, 0.45, 0.68, 'L'],
-          [5.5, 45, 0.90, 0.70, 'L'], [6.5, 47, 0.45, 0.68, 'L'], [7.0, 43, 0.90, 0.74, 'L'],
-          // Main Ragtime Theme with stride left-hand
-          [8.0, 62, 0.45, 0.78, 'R'], [8.5, 63, 0.45, 0.80, 'R'],
-          [9.0, 64, 0.45, 0.84, 'R'], [9.5, 72, 0.90, 0.86, 'R'], [10.5, 64, 0.45, 0.80, 'R'], [11.0, 72, 0.90, 0.86, 'R'],
-          [9.0, 48, 0.90, 0.72, 'L'], [10.0, 55, 0.90, 0.68, 'L'], [10.0, 60, 0.90, 0.68, 'L'],
-          [11.0, 43, 0.90, 0.72, 'L'], [12.0, 55, 0.90, 0.68, 'L'],
-          [12.0, 64, 0.45, 0.80, 'R'], [12.5, 72, 2.20, 0.88, 'R'],
-          [13.0, 48, 0.90, 0.72, 'L'], [14.0, 55, 0.90, 0.68, 'L'], [14.0, 60, 0.90, 0.68, 'L'],
-          // Climax phrase C5-D5-D#5-E5-C5-D5-E5-B4-D5-C5
-          [15.0, 72, 0.45, 0.82, 'R'], [15.5, 74, 0.45, 0.84, 'R'], [16.0, 75, 0.45, 0.84, 'R'],
-          [16.5, 76, 0.45, 0.86, 'R'], [17.0, 72, 0.45, 0.82, 'R'], [17.5, 74, 0.45, 0.84, 'R'],
-          [18.0, 76, 0.90, 0.88, 'R'], [19.0, 71, 0.45, 0.82, 'R'], [19.5, 74, 0.90, 0.86, 'R'],
-          [20.5, 72, 2.20, 0.90, 'R'],
-          [16.5, 48, 0.90, 0.72, 'L'], [17.5, 55, 0.90, 0.68, 'L'],
-          [18.5, 43, 0.90, 0.72, 'L'], [19.5, 55, 0.90, 0.68, 'L'],
-          [20.5, 48, 2.20, 0.78, 'L'], [20.5, 55, 2.20, 0.74, 'L']
-        ])
-      }
+        verseBeats: 23,
+        baseNotes: [
+          [0.0,74,0.45,0.84,'R'],[0.5,76,0.45,0.84,'R'],[1.0,72,0.45,0.82,'R'],
+          [1.5,69,0.90,0.84,'R'],[2.5,71,0.45,0.82,'R'],[3.0,67,0.90,0.86,'R'],
+          [4.0,62,0.45,0.80,'R'],[4.5,64,0.45,0.80,'R'],[5.0,60,0.45,0.78,'R'],
+          [5.5,57,0.90,0.80,'R'],[6.5,59,0.45,0.78,'R'],[7.0,55,0.90,0.82,'R'],
+          [4.0,50,0.45,0.70,'L'],[4.5,52,0.45,0.70,'L'],[5.0,48,0.45,0.68,'L'],
+          [5.5,45,0.90,0.70,'L'],[6.5,47,0.45,0.68,'L'],[7.0,43,0.90,0.74,'L'],
+          [8.0,62,0.45,0.78,'R'],[8.5,63,0.45,0.80,'R'],
+          [9.0,64,0.45,0.84,'R'],[9.5,72,0.90,0.86,'R'],[10.5,64,0.45,0.80,'R'],[11.0,72,0.90,0.86,'R'],
+          [9.0,48,0.90,0.72,'L'],[10.0,55,0.90,0.68,'L'],[10.0,60,0.90,0.68,'L'],
+          [11.0,43,0.90,0.72,'L'],[12.0,55,0.90,0.68,'L'],
+          [12.0,64,0.45,0.80,'R'],[12.5,72,2.20,0.88,'R'],
+          [13.0,48,0.90,0.72,'L'],[14.0,55,0.90,0.68,'L'],[14.0,60,0.90,0.68,'L'],
+          [15.0,72,0.45,0.82,'R'],[15.5,74,0.45,0.84,'R'],[16.0,75,0.45,0.84,'R'],
+          [16.5,76,0.45,0.86,'R'],[17.0,72,0.45,0.82,'R'],[17.5,74,0.45,0.84,'R'],
+          [18.0,76,0.90,0.88,'R'],[19.0,71,0.45,0.82,'R'],[19.5,74,0.90,0.86,'R'],
+          [20.5,72,2.00,0.90,'R'],
+          [16.5,48,0.90,0.72,'L'],[17.5,55,0.90,0.68,'L'],
+          [18.5,43,0.90,0.72,'L'],[19.5,55,0.90,0.68,'L'],
+          [20.5,48,2.00,0.78,'L'],[20.5,55,2.00,0.74,'L']
+        ],
+        verses: [
+          [[0, '♪ The Entertainer: Classic Ragtime Intro & A-Strain (Scott Joplin, 1902) ♪'], [15, '♪ Syncopated Ragtime Cadence ♪']],
+          [[0, '♪ Strain Repeat with Stride Left-Hand Bass ♪'], [15, '♪ Finale Chord ♪']]
+        ]
+      })
     ];
 
     // Precompute total duration in beats for each song
@@ -2763,7 +3831,7 @@
     });
 
     // =========================================================================
-    // 11. SONG LIBRARY PANEL & SELF-PLAYING TWO-HAND SEQUENCER
+    // 11. SONG LIBRARY PANEL, LIVE LYRICS DISPLAY & TWO-HAND SEQUENCER
     // =========================================================================
     const HAND_COLOR_LEFT = 0xf59e42;  // Warm Amber for Left Hand
     const HAND_COLOR_RIGHT = 0x4ea0ff; // Sapphire Blue for Right Hand
@@ -2773,6 +3841,8 @@
     let songBeatPos = 0;
     let songTempoMultiplier = userSettings.songTempo / 100; // 0.50 to 1.50
     let songLoop = Boolean(userSettings.songLoop);
+    let showLyrics = userSettings.showLyrics !== false;
+    let currentSongFilter = 'all';
     const activeSongNotes = new Set(); // indices into currentSong.notes currently sounding
 
     const songListContainer = document.getElementById('song-list-container');
@@ -2786,11 +3856,99 @@
     const songTempoSlider = document.getElementById('song-tempo-slider');
     const songTempoVal = document.getElementById('song-tempo-val');
 
+    const lyricsBanner = document.getElementById('lyrics-banner');
+    const lyricsCurrentText = document.getElementById('lyrics-current-text');
+    const lyricsNextText = document.getElementById('lyrics-next-text');
+    const toggleLyricsBtn = document.getElementById('toggle-lyrics-btn');
+    const toggleLyricsMenuBtn = document.getElementById('toggle-lyrics-menu-btn');
+    const openLyricsSheetBtn = document.getElementById('open-lyrics-sheet-btn');
+    const closeLyricsSheetBtn = document.getElementById('close-lyrics-sheet-btn');
+    const lyricsSheetBackdrop = document.getElementById('lyrics-sheet-backdrop');
+    const lyricsSheetTitle = document.getElementById('lyrics-sheet-title');
+    const lyricsSheetBody = document.getElementById('lyrics-sheet-body');
+
     function formatSeconds(sec) {
       const s = Math.max(0, Math.floor(sec));
       const m = Math.floor(s / 60);
       const r = s % 60;
       return `${m}:${r < 10 ? '0' : ''}${r}`;
+    }
+
+    function applyLyricsVisibility() {
+      lyricsBanner.classList.toggle('hidden', !showLyrics);
+      toggleLyricsBtn.classList.toggle('active', showLyrics);
+      toggleLyricsBtn.textContent = `Lyrics: ${showLyrics ? 'ON' : 'OFF'}`;
+      toggleLyricsMenuBtn.classList.toggle('active', showLyrics);
+      toggleLyricsMenuBtn.textContent = showLyrics ? 'ON' : 'OFF';
+    }
+
+    function updateLiveLyricsBanner() {
+      const lyr = currentSong.lyrics || [];
+      if (lyr.length === 0) {
+        lyricsCurrentText.textContent = `♪ ${currentSong.title} (Instrumental) ♪`;
+        lyricsNextText.textContent = currentSong.composer;
+        return;
+      }
+
+      let activeIdx = 0;
+      for (let i = 0; i < lyr.length; i++) {
+        if (songBeatPos + 0.15 >= lyr[i].time) {
+          activeIdx = i;
+        } else {
+          break;
+        }
+      }
+
+      const currentLine = lyr[activeIdx];
+      const nextLine = lyr[activeIdx + 1];
+      lyricsCurrentText.textContent = `♪ ${currentLine.text} ♪`;
+      lyricsNextText.textContent = nextLine ? `Next: ${nextLine.text}` : `— End of ${currentSong.title} —`;
+
+      // Highlight active line inside Lyrics Sheet modal if open
+      if (lyricsSheetBackdrop.classList.contains('open')) {
+        lyricsSheetBody.querySelectorAll('.lyrics-line-item').forEach((el) => {
+          const idx = Number(el.getAttribute('data-lyric-idx'));
+          el.classList.toggle('active-lyric', idx === activeIdx);
+        });
+      }
+    }
+
+    function renderLyricsSheetModal() {
+      lyricsSheetTitle.textContent = `${currentSong.title} — Full Lyrics & Structure`;
+      const lyr = currentSong.lyrics || [];
+      if (lyr.length === 0) {
+        lyricsSheetBody.innerHTML = `<p>This piece is an instrumental composition (${currentSong.composer}).</p>`;
+        return;
+      }
+
+      const byVerse = new Map();
+      lyr.forEach((item, idx) => {
+        const v = item.verse || 1;
+        if (!byVerse.has(v)) byVerse.set(v, []);
+        byVerse.get(v).push({ ...item, idx });
+      });
+
+      let html = `<p style="color: var(--text-dim); margin-top: 0;"><em>${currentSong.composer}</em> · Click any lyric phrase below to jump straight to that moment in the song:</p>`;
+      for (const [verseNum, lines] of byVerse.entries()) {
+        html += `<div class="lyrics-verse-block">`;
+        for (const line of lines) {
+          html += `<div class="lyrics-line-item" data-lyric-idx="${line.idx}" data-lyric-beat="${line.time}">♪ ${line.text}</div>`;
+        }
+        html += `</div>`;
+      }
+      lyricsSheetBody.innerHTML = html;
+
+      lyricsSheetBody.querySelectorAll('.lyrics-line-item').forEach((el) => {
+        el.addEventListener('click', () => {
+          const targetBeat = Number(el.getAttribute('data-lyric-beat')) || 0;
+          releaseAllSongNotes();
+          songBeatPos = targetBeat;
+          ensureAudioStarted();
+          songPlaying = true;
+          updatePlayerUI();
+        });
+      });
+      updateLiveLyricsBanner();
     }
 
     function updatePlayerUI() {
@@ -2811,6 +3969,8 @@
       document.querySelectorAll('.song-card').forEach((card) => {
         card.classList.toggle('active', card.getAttribute('data-song-id') === currentSong.id);
       });
+
+      updateLiveLyricsBanner();
     }
 
     function releaseAllSongNotes() {
@@ -2835,19 +3995,36 @@
         ensureAudioStarted();
         songPlaying = true;
       }
+      if (lyricsSheetBackdrop.classList.contains('open')) {
+        renderLyricsSheetModal();
+      }
       updatePlayerUI();
     }
 
     function renderSongList() {
       songListContainer.innerHTML = '';
-      for (const song of PUBLIC_DOMAIN_SONGS) {
+      const totalCount = PUBLIC_DOMAIN_SONGS.length;
+      const christmasCount = PUBLIC_DOMAIN_SONGS.filter(s => s.category === 'christmas').length;
+      const classicalCount = PUBLIC_DOMAIN_SONGS.filter(s => s.category === 'classical').length;
+
+      document.getElementById('open-songs-btn').textContent = `Song Library (${totalCount})`;
+      const tabAll = document.querySelector('[data-filter="all"]');
+      const tabXmas = document.querySelector('[data-filter="christmas"]');
+      const tabClass = document.querySelector('[data-filter="classical"]');
+      if (tabAll) tabAll.textContent = `All (${totalCount})`;
+      if (tabXmas) tabXmas.textContent = `Christmas (${christmasCount})`;
+      if (tabClass) tabClass.textContent = `Classical & Folk (${classicalCount})`;
+
+      const filtered = PUBLIC_DOMAIN_SONGS.filter(s => currentSongFilter === 'all' || s.category === currentSongFilter);
+      for (const song of filtered) {
         const card = document.createElement('div');
         card.className = `song-card${song.id === currentSong.id ? ' active' : ''}`;
         card.setAttribute('data-song-id', song.id);
+        const hasVocalLyrics = song.lyrics && song.lyrics.length > 0 && !song.lyrics[0].text.startsWith('♪');
         card.innerHTML = `
           <div class="song-info">
             <span class="song-title">${song.title}</span>
-            <span class="song-meta">${song.composer}</span>
+            <span class="song-meta">${song.composer} ${hasVocalLyrics ? '· 📜 Lyrics' : ''}</span>
           </div>
           <span class="song-badge">${song.bpm} BPM</span>
         `;
@@ -2858,7 +4035,45 @@
       }
     }
 
+    document.querySelectorAll('.filter-tab').forEach((tab) => {
+      tab.addEventListener('click', () => {
+        currentSongFilter = tab.getAttribute('data-filter') || 'all';
+        document.querySelectorAll('.filter-tab').forEach(t => t.classList.toggle('active', t === tab));
+        renderSongList();
+      });
+    });
+
     renderSongList();
+
+    function toggleLyricsDisplay() {
+      showLyrics = !showLyrics;
+      userSettings.showLyrics = showLyrics;
+      saveSettings();
+      applyLyricsVisibility();
+    }
+
+    toggleLyricsBtn.addEventListener('click', toggleLyricsDisplay);
+    toggleLyricsMenuBtn.addEventListener('click', toggleLyricsDisplay);
+
+    function setLyricsSheetOpen(open) {
+      if (open) renderLyricsSheetModal();
+      lyricsSheetBackdrop.classList.toggle('open', open);
+      openLyricsSheetBtn.classList.toggle('active', open);
+    }
+
+    openLyricsSheetBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      closeAllDropdownMenus();
+      setSongDrawerOpen(false);
+      setManualOpen(false);
+      setLyricsSheetOpen(!lyricsSheetBackdrop.classList.contains('open'));
+    });
+
+    closeLyricsSheetBtn.addEventListener('click', () => setLyricsSheetOpen(false));
+    lyricsSheetBackdrop.addEventListener('click', (e) => {
+      if (e.target === lyricsSheetBackdrop) setLyricsSheetOpen(false);
+    });
+    lyricsBanner.addEventListener('click', () => setLyricsSheetOpen(true));
 
     playerPlayBtn.addEventListener('click', () => {
       ensureAudioStarted();
@@ -2975,6 +4190,7 @@
       if (includeModals) {
         setSongDrawerOpen(false);
         setManualOpen(false);
+        setLyricsSheetOpen(false);
       }
     }
 
@@ -3109,6 +4325,7 @@
       songTempoVal.textContent = `${userSettings.songTempo}%`;
 
       applyNoteLabelsVisibility();
+      applyLyricsVisibility();
       refreshOctaveLabels();
       updateScaleHighlighting();
       updateCameraTransform();
