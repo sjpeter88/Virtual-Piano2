@@ -449,6 +449,11 @@
       cursor: pointer;
       touch-action: none;
     }
+    /* Christmas theme: full-bleed 3D scene behind the toolbars, like the mock-up */
+    body.theme-christmas #canvas-container {
+      top: 0;
+      bottom: 0;
+    }
 
     /* =========================================================================
        SLIDE-OUT SONG LIBRARY DRAWER
@@ -3560,6 +3565,14 @@
     const ROOM_Z = -48;
     const ROOM_FLOOR_Y = -20.5;
 
+    // Mock-up composition: enlarge the whole room 1.45x about the back-wall/floor anchor point
+    // (so the bookcase, windows, fireplace and trees fill the frame behind the piano), then lift it
+    // so the fireplace and stockings clear the piano lid.
+    const ROOM_SCALE = 1.45;
+    const ROOM_LIFT_Y = 14;
+    christmasRoomGroup.scale.setScalar(ROOM_SCALE);
+    christmasRoomGroup.position.set(0, ROOM_FLOOR_Y * (1 - ROOM_SCALE) + ROOM_LIFT_Y, ROOM_Z * (1 - ROOM_SCALE));
+
     const wallMat = new THREE.MeshStandardMaterial({ color: 0x543b2a, roughness: 0.88 });
     const chimneyPlasterMat = new THREE.MeshStandardMaterial({ color: 0x73543e, roughness: 0.82 });
     const woodTrimMat = new THREE.MeshStandardMaterial({ color: 0x361c10, roughness: 0.58 });
@@ -4213,14 +4226,27 @@
     function updateCameraTransform() {
       const zNorm = zoomPercent / 100;
       const isXmas = (userSettings.theme || 'christmas') === 'christmas';
-      const camY = isXmas ? (16 + zNorm * 22) : (22 + zNorm * 38);
-      const camZ = isXmas ? (25 + zNorm * 51) : (22 + zNorm * 40);
-
       const maxPanX = (1.05 - zNorm * 0.65) * (keyboardSpan * 0.45);
       const panX = (scrollPercent / 100) * maxPanX;
 
+      if (isXmas) {
+        // Aspect-aware framing: at 100% zoom the full 88-key piano fills ~86% of the window width
+        // (as in the mock-up), with the room visible above it. Lower zoom moves in on the keys.
+        const tanHalfH = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * camera.aspect;
+        const fullDist = (keyboardSpan * 0.5 / 0.86) / tanHalfH;
+        const dist = fullDist * (0.4 + 0.6 * zNorm);
+        const elev = THREE.MathUtils.degToRad(11 + (1 - zNorm) * 12);
+        const lookY = 4 + zNorm * 16;
+        const lookZ = -4 - zNorm * 16;
+        camera.position.set(panX, 1 + dist * Math.sin(elev), 7 + dist * Math.cos(elev));
+        camera.lookAt(panX, lookY, lookZ);
+        return;
+      }
+
+      const camY = 22 + zNorm * 38;
+      const camZ = 22 + zNorm * 40;
       camera.position.set(panX, camY, camZ);
-      camera.lookAt(panX, isXmas ? 4.8 : -1.0, isXmas ? -12.0 : -1.8);
+      camera.lookAt(panX, -1.0, -1.8);
     }
 
     zoomSlider.addEventListener('input', () => {
@@ -5182,7 +5208,7 @@
       scene.background.setHex(isXmas ? 0x160c09 : 0x0e0b09);
       scene.fog.color.setHex(isXmas ? 0x160c09 : 0x0e0b09);
       scene.fog.density = isXmas ? 0.0012 : 0.0028;
-      updateCameraTransform();
+      resizeRenderer(); // the canvas is full-bleed in Christmas mode, inset in Classic Studio
     }
 
     function toggleVisualTheme() {
@@ -5360,13 +5386,16 @@
       ensureAudioStarted();
     }
 
-    window.addEventListener('resize', () => {
+    function resizeRenderer() {
       const w = container.clientWidth;
       const h = container.clientHeight;
+      if (!w || !h) return;
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
       renderer.setSize(w, h);
-    });
+      updateCameraTransform(); // Christmas framing depends on the aspect ratio
+    }
+    window.addEventListener('resize', resizeRenderer);
 
     // =========================================================================
     // 14. EXPOSED INSPECTION HOOK & MAIN ANIMATION LOOP
@@ -5376,6 +5405,8 @@
       keyCount: keyMap.size,
       songCount: PUBLIC_DOMAIN_SONGS.length,
       songs: PUBLIC_DOMAIN_SONGS.map(s => ({ id: s.id, title: s.title, notes: s.notes.length })),
+      camera,
+      christmasRoomGroup,
       pressKey,
       releaseKey,
       playChordByName,
