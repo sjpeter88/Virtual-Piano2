@@ -3376,13 +3376,48 @@
       metalness: 0.35
     });
 
-    // Glossy grand piano top lid extending back behind the fallboard
-    const grandLidTop = new THREE.Mesh(
-      new THREE.BoxGeometry(keyboardSpan + 8.4, 0.85, 17.5),
-      grandLidMat
-    );
-    grandLidTop.position.set(0, 5.7, -WHITE_KEY_LENGTH / 2 - 9.8);
+    // Glossy grand piano top lid extending back behind the fallboard.
+    // Rounded-corner outline (big sweeping back corners like a grand piano's shoulders) with a bevelled
+    // edge so the lacquer catches a bright highlight line all the way around.
+    const LID_W = keyboardSpan + 8.4;
+    const LID_D = 17.5;
+    const lidShape = new THREE.Shape();
+    {
+      const hw = LID_W / 2, rb = 10.0, rf = 1.4; // back (y=0) and front (y=LID_D) corner radii
+      lidShape.moveTo(-hw + rb, 0);
+      lidShape.lineTo(hw - rb, 0);
+      lidShape.quadraticCurveTo(hw, 0, hw, rb);
+      lidShape.lineTo(hw, LID_D - rf);
+      lidShape.quadraticCurveTo(hw, LID_D, hw - rf, LID_D);
+      lidShape.lineTo(-hw + rf, LID_D);
+      lidShape.quadraticCurveTo(-hw, LID_D, -hw, LID_D - rf);
+      lidShape.lineTo(-hw, rb);
+      lidShape.quadraticCurveTo(-hw, 0, -hw + rb, 0);
+    }
+    const lidGeo = new THREE.ExtrudeGeometry(lidShape, {
+      depth: 0.6, bevelEnabled: true, bevelSize: 0.3, bevelThickness: 0.3, bevelSegments: 4, curveSegments: 14
+    });
+    lidGeo.rotateX(Math.PI / 2); // outline y -> world +z (front), extrusion goes downward
+    const grandLidTop = new THREE.Mesh(lidGeo, grandLidMat);
+    grandLidTop.position.set(0, 5.8, -WHITE_KEY_LENGTH / 2 - 9.8 - LID_D / 2 + 0.9);
+    grandLidTop.castShadow = true;
+    grandLidTop.receiveShadow = true;
     pianoDecorGroup.add(grandLidTop);
+
+    // Solid lacquered front apron + side skirts under the keybed so the instrument reads as a full grand
+    // piano body (instead of floating keys) when the camera looks down on it in the Christmas view.
+    const apronGeo = new THREE.BoxGeometry(keyboardSpan + 7.5, 7, 2.2);
+    const pianoApron = new THREE.Mesh(apronGeo, grandLidMat);
+    pianoApron.position.set(0, -4.4, WHITE_KEY_LENGTH / 2 + 1.0);
+    pianoApron.receiveShadow = true;
+    const skirtGeo = new THREE.BoxGeometry(3.4, 7, WHITE_KEY_LENGTH + 8.6);
+    const leftSkirt = new THREE.Mesh(skirtGeo, grandLidMat);
+    leftSkirt.position.set(-keyboardSpan / 2 - 1.9, -4.4, -0.6);
+    const rightSkirt = new THREE.Mesh(skirtGeo, grandLidMat);
+    rightSkirt.position.set(keyboardSpan / 2 + 1.9, -4.4, -0.6);
+    const keybedUnderside = new THREE.Mesh(new THREE.BoxGeometry(keyboardSpan + 7.5, 7, WHITE_KEY_LENGTH + 6.0), grandLidMat);
+    keybedUnderside.position.set(0, -4.9, -0.1);
+    pianoDecorGroup.add(pianoApron, leftSkirt, rightSkirt, keybedUnderside);
 
     // Molded side rim cheeks matching the mockup's grand piano shoulders
     const leftUpperRim = new THREE.Mesh(new THREE.BoxGeometry(3.5, 4.6, 17.5), grandLidMat);
@@ -3411,14 +3446,21 @@
     const lCtx = lidReflectCanvas.getContext('2d');
     lCtx.fillStyle = '#070606';
     lCtx.fillRect(0, 0, 512, 128);
-    for (let i = 0; i < 38; i++) {
-      const rx = 35 + i * 11.8;
-      const rg = lCtx.createRadialGradient(rx, 85, 1, rx, 85, 14);
-      rg.addColorStop(0, 'rgba(255, 220, 130, 0.78)');
-      rg.addColorStop(0.5, 'rgba(255, 160, 50, 0.25)');
-      rg.addColorStop(1, 'rgba(0,0,0,0)');
-      lCtx.fillStyle = rg;
-      lCtx.fillRect(rx - 16, 45, 32, 80);
+    // Two rows of soft multicolour light reflections (warm gold / red / green), like the mock-up's lid
+    const lidLightCols = ['255, 214, 120', '255, 70, 70', '255, 214, 120', '70, 225, 120'];
+    for (let row = 0; row < 2; row++) {
+      for (let i = 0; i < 30; i++) {
+        const rx = 22 + i * 16.5 + row * 8;
+        const ry = row === 0 ? 62 : 98;
+        const col = lidLightCols[(i + row * 2) % lidLightCols.length];
+        const rr = row === 0 ? 12 : 17;
+        const rg = lCtx.createRadialGradient(rx, ry, 1, rx, ry, rr);
+        rg.addColorStop(0, `rgba(${col}, ${row === 0 ? 0.6 : 0.8})`);
+        rg.addColorStop(0.5, `rgba(${col}, 0.22)`);
+        rg.addColorStop(1, 'rgba(0,0,0,0)');
+        lCtx.fillStyle = rg;
+        lCtx.fillRect(rx - rr - 2, ry - rr - 2, rr * 2 + 4, rr * 2 + 4);
+      }
     }
     const lidReflectPlane = new THREE.Mesh(
       new THREE.PlaneGeometry(keyboardSpan - 4, 10.5),
@@ -3574,7 +3616,7 @@
     // (so the bookcase, windows, fireplace and trees fill the frame behind the piano), then lift it
     // so the fireplace and stockings clear the piano lid.
     const ROOM_SCALE = 1.45;
-    const ROOM_LIFT_Y = 14;
+    const ROOM_LIFT_Y = 13;
     christmasRoomGroup.scale.setScalar(ROOM_SCALE);
     christmasRoomGroup.position.set(0, ROOM_FLOOR_Y * (1 - ROOM_SCALE) + ROOM_LIFT_Y, ROOM_Z * (1 - ROOM_SCALE));
 
@@ -4240,9 +4282,9 @@
         const tanHalfH = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * camera.aspect;
         const fullDist = (keyboardSpan * 0.5 / 0.86) / tanHalfH;
         const dist = fullDist * (0.4 + 0.6 * zNorm);
-        const elev = THREE.MathUtils.degToRad(11 + (1 - zNorm) * 12);
-        const lookY = 4 + zNorm * 16;
-        const lookZ = -4 - zNorm * 16;
+        const elev = THREE.MathUtils.degToRad(33 + (1 - zNorm) * 12);
+        const lookY = 4 + zNorm * 12;
+        const lookZ = -4 - zNorm * 12;
         camera.position.set(panX, 1 + dist * Math.sin(elev), 7 + dist * Math.cos(elev));
         camera.lookAt(panX, lookY, lookZ);
         return;
@@ -5491,7 +5533,62 @@
       return bloom.ok && userSettings.glow !== false && activeTheme === 'christmas';
     }
 
+    // -------------------------------------------------------------------------
+    // 13E. LIVE LACQUER REFLECTIONS — a cube-map snapshot of the Christmas room (tree lights, fire,
+    //      windows, wreath) is taken from just above the piano lid and used as the environment map
+    //      for the black lacquer, so the piano reflects the room like the mock-up.
+    // -------------------------------------------------------------------------
+    var reflect = { ok: true, cube: null, cam: null, pmrem: null, rt: null, lastMs: -1e9, lastTheme: null };
+    const lacquerReflectMats = [
+      { mat: lacquerMat, intensity: 1.0 },
+      { mat: grandLidMat, intensity: 2.4 }
+    ];
+
+    function applyLacquerEnv(envTex) {
+      lacquerReflectMats.forEach(({ mat, intensity }) => {
+        const changed = (mat.envMap === null) !== (envTex === null);
+        mat.envMap = envTex;
+        mat.envMapIntensity = intensity;
+        if (changed) mat.needsUpdate = true;
+      });
+    }
+
+    function updateLacquerReflections(nowMs) {
+      if (!reflect.ok) return;
+      const isXmas = activeTheme === 'christmas';
+      if (!isXmas) {
+        if (reflect.lastTheme !== 'studio') { applyLacquerEnv(null); reflect.lastTheme = 'studio'; }
+        return;
+      }
+      // Refresh about every 1.5 s with glow on (fire flicker), otherwise just once per theme switch
+      const interval = glowActive() ? 1500 : 1e9;
+      if (reflect.lastTheme === 'christmas' && nowMs - reflect.lastMs < interval) return;
+      try {
+        if (!reflect.cube) {
+          reflect.cube = new THREE.WebGLCubeRenderTarget(256, { type: THREE.HalfFloatType, generateMipmaps: false });
+          reflect.cam = new THREE.CubeCamera(1, 500, reflect.cube);
+          reflect.cam.position.set(0, 9, -22);
+          reflect.pmrem = new THREE.PMREMGenerator(renderer);
+        }
+        pianoGroup.visible = false; // don't let the piano reflect itself
+        reflect.cam.update(renderer, scene);
+        pianoGroup.visible = true;
+        const next = reflect.pmrem.fromCubemap(reflect.cube.texture);
+        applyLacquerEnv(next.texture);
+        if (reflect.rt) reflect.rt.dispose();
+        reflect.rt = next;
+        reflect.lastMs = nowMs;
+        reflect.lastTheme = 'christmas';
+      } catch (err) {
+        console.warn('Lacquer reflections unavailable:', err);
+        pianoGroup.visible = true;
+        reflect.ok = false;
+        applyLacquerEnv(null);
+      }
+    }
+
     function renderFrame() {
+      updateLacquerReflections(performance.now());
       if (!glowActive()) {
         renderer.setRenderTarget(null);
         renderer.render(scene, camera);
@@ -5568,6 +5665,10 @@
       songs: PUBLIC_DOMAIN_SONGS.map(s => ({ id: s.id, title: s.title, notes: s.notes.length })),
       camera,
       christmasRoomGroup,
+      renderFrame,
+      pickKeyFromEvent,
+      pickableCount: pickableMeshes.length,
+      canvas: renderer.domElement,
       pressKey,
       releaseKey,
       playChordByName,
