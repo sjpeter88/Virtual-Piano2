@@ -3661,7 +3661,8 @@
     });
 
     // Horizontal shelves + Crown molding
-    const bookColors = [0xa81c24, 0x185c32, 0x224c87, 0xc8922b, 0x7d2822, 0x1e4d2b, 0xd8cbb8];
+    const bookColors = [0xa81c24, 0x185c32, 0x224c87, 0xc8922b, 0x7d2822, 0x1e4d2b, 0xd8cbb8, 0x5a2a6b, 0x2d6f73, 0x8a5a2b];
+    const bookMats = bookColors.map(c => new THREE.MeshStandardMaterial({ color: c, roughness: 0.6 }));
     [9.2, 14.5, 19.8, 25.1, 30.8].forEach((sy, sIdx) => {
       const shelf = new THREE.Mesh(new THREE.BoxGeometry(bcWidth + (sIdx === 4 ? 1.6 : 0), sIdx === 4 ? 1.4 : 0.75, 4.3), oakCabinetMat);
       shelf.position.set(0, sy, 0.15);
@@ -3689,20 +3690,57 @@
               bookcaseGroup.add(flameSprite);
             });
           } else {
-            // Row of colorful books
-            let bx = bayCenterX - 3.3;
-            for (let b = 0; b < 6 && bx < bayCenterX + 2.8; b++) {
-              const bw = 0.68 + ((b + sIdx) % 3) * 0.22;
-              const bh = 3.1 + ((b * 2 + sIdx) % 3) * 0.55;
-              const bMat = new THREE.MeshStandardMaterial({
-                color: bookColors[(b + sIdx * 2 + bayIdx) % bookColors.length],
-                roughness: 0.6
-              });
-              const book = new THREE.Mesh(new THREE.BoxGeometry(bw, bh, 2.6), bMat);
-              book.position.set(bx, sy + 0.4 + bh / 2, 0.2);
-              if (b === 5) book.rotation.z = 0.18; // slightly leaning book
+            // Densely packed row of colorful books (varied heights, a leaning last book),
+            // with a small Christmas decoration at the end of some shelves
+            const deco = (sIdx === 0 && bayIdx === 2) ? 'poinsettia'
+                       : (sIdx === 2 && bayIdx === 0) ? 'minitree'
+                       : (sIdx === 3 && bayIdx === 1) ? 'ornaments'
+                       : (sIdx === 1 && bayIdx === 0) ? 'wreath' : null;
+            const maxBooks = deco ? 5 : 9;
+            const bayLeft = bayCenterX - 4.0, bayRight = bayCenterX + 4.0;
+            let bx = bayLeft + 0.4;
+            for (let b = 0; b < maxBooks && bx < bayRight - 0.5; b++) {
+              const bw = 0.55 + ((b * 5 + sIdx * 3 + bayIdx) % 4) * 0.17;
+              const bh = 3.0 + ((b * 7 + sIdx * 2 + bayIdx * 3) % 5) * 0.34;
+              const book = new THREE.Mesh(
+                new THREE.BoxGeometry(bw, bh, 2.6),
+                bookMats[(b * 3 + sIdx * 2 + bayIdx) % bookMats.length]
+              );
+              book.position.set(bx + bw / 2, sy + 0.4 + bh / 2, 0.2);
+              if (b === maxBooks - 1 && !deco) book.rotation.z = 0.2; // slightly leaning book
               bookcaseGroup.add(book);
-              bx += bw + 0.14;
+              bx += bw + 0.05;
+            }
+            const dx = Math.min(bayRight - 1.8, Math.max(bx + 1.6, bayCenterX + 1.6));
+            if (deco === 'minitree') {
+              for (let c = 0; c < 3; c++) {
+                const cone = new THREE.Mesh(new THREE.ConeGeometry(1.5 - c * 0.38, 1.7, 9), pineMat);
+                cone.position.set(dx, sy + 0.5 + 0.9 + c * 1.0, 0.4);
+                bookcaseGroup.add(cone);
+              }
+              const miniStar = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowSpriteTex, color: 0xffdd66, transparent: true, blending: THREE.AdditiveBlending }));
+              miniStar.scale.set(1.6, 1.6, 1);
+              miniStar.position.set(dx, sy + 4.1, 0.5);
+              bookcaseGroup.add(miniStar);
+            } else if (deco === 'poinsettia') {
+              const pn = createLushPoinsettiaCluster(0.62);
+              pn.position.set(dx, sy + 1.0, 0.5);
+              pn.rotation.x = -0.9;
+              bookcaseGroup.add(pn);
+            } else if (deco === 'ornaments') {
+              [[-0.9, 0xd91824], [0.2, 0xffcc33], [1.1, 0x24a848]].forEach(([ox, col], oi) => {
+                const orb = new THREE.Mesh(new THREE.SphereGeometry(0.62 + oi * 0.08, 12, 10),
+                  new THREE.MeshStandardMaterial({ color: col, roughness: 0.2, metalness: 0.5 }));
+                orb.position.set(dx + ox, sy + 0.4 + 0.65, 0.5);
+                bookcaseGroup.add(orb);
+              });
+            } else if (deco === 'wreath') {
+              const wr = new THREE.Mesh(new THREE.TorusGeometry(1.5, 0.45, 8, 18), pineMat);
+              wr.position.set(dx, sy + 0.4 + 1.6, 0.9);
+              bookcaseGroup.add(wr);
+              const bow = new THREE.Mesh(new THREE.SphereGeometry(0.45, 8, 8), berryMat);
+              bow.position.set(dx, sy + 0.4 + 0.2, 1.3);
+              bookcaseGroup.add(bow);
             }
           }
         });
@@ -3716,7 +3754,7 @@
 
     // --- 2. CENTER FIREPLACE WITH TAPERED CHIMNEY HOOD, BRICK FIREBOX, MANTEL, STOCKINGS & WREATH ---
     const fireplaceGroup = new THREE.Group();
-    fireplaceGroup.position.set(6.5, ROOM_FLOOR_Y, ROOM_Z + 1.8);
+    fireplaceGroup.position.set(6.5, ROOM_FLOOR_Y + 7, ROOM_Z + 1.8); // raised so the fire clears the piano lid (lower part is hidden behind the piano anyway)
     christmasRoomGroup.add(fireplaceGroup);
 
     // Dark carved wood fireplace mantel columns & lintel
@@ -3758,23 +3796,72 @@
 
     // Animated Fire Flames + Additive Glow Halo
     const fireFlames = [];
-    const flameColors = [0xff4500, 0xff8c1a, 0xffdd55, 0xffffff];
-    for (let i = 0; i < 9; i++) {
-      const fGeo = new THREE.ConeGeometry(1.15 + (i % 3) * 0.45, 4.5 + (i % 3) * 1.6, 7);
-      const fMat = new THREE.MeshBasicMaterial({
-        color: flameColors[i % flameColors.length],
-        transparent: true,
-        opacity: 0.88,
-        blending: THREE.AdditiveBlending
-      });
-      const flame = new THREE.Mesh(fGeo, fMat);
-      flame.position.set((i - 4) * 1.15, 3.2, 1.85 + (i % 2) * 0.25);
-      fireplaceGroup.add(flame);
-      fireFlames.push({ mesh: flame, baseY: 3.2, phase: i * 1.1 });
+    // Soft teardrop flame texture (orange outer, yellow body, white-hot core), drawn procedurally
+    function createFlameTexture() {
+      const c = document.createElement('canvas');
+      c.width = 128;
+      c.height = 256;
+      const ctx = c.getContext('2d');
+      const teardrop = (inset) => {
+        ctx.beginPath();
+        ctx.moveTo(64, 250 - inset * 0.4);
+        ctx.bezierCurveTo(8 + inset, 222, 14 + inset, 130, 64, 6 + inset * 2.2);
+        ctx.bezierCurveTo(114 - inset, 130, 120 - inset, 222, 64, 250 - inset * 0.4);
+        ctx.closePath();
+      };
+      ctx.filter = 'blur(7px)';
+      let g = ctx.createLinearGradient(0, 250, 0, 0);
+      g.addColorStop(0.0, 'rgba(255, 70, 0, 0.95)');
+      g.addColorStop(0.45, 'rgba(255, 140, 20, 0.95)');
+      g.addColorStop(0.8, 'rgba(255, 205, 70, 0.7)');
+      g.addColorStop(1.0, 'rgba(255, 220, 120, 0.0)');
+      ctx.fillStyle = g;
+      teardrop(0);
+      ctx.fill();
+      ctx.filter = 'blur(5px)';
+      g = ctx.createLinearGradient(0, 245, 0, 70);
+      g.addColorStop(0.0, 'rgba(255, 235, 150, 0.95)');
+      g.addColorStop(0.6, 'rgba(255, 250, 215, 0.9)');
+      g.addColorStop(1.0, 'rgba(255, 255, 255, 0.0)');
+      ctx.fillStyle = g;
+      teardrop(30);
+      ctx.fill();
+      const tex = new THREE.CanvasTexture(c);
+      tex.needsUpdate = true;
+      return tex;
     }
+    const flameTex = createFlameTexture();
+    const flameTints = [0xff9a3c, 0xffb347, 0xffc766, 0xff8a2c, 0xffd27a];
+    const FLAME_COUNT = 7;
+    for (let i = 0; i < FLAME_COUNT; i++) {
+      const mid = 1 - Math.abs(i - 3) / 3.6; // taller toward the middle of the fire
+      const w = 2.4 + mid * 2.0;
+      const h = 6.0 + mid * 6.0 + (i % 3) * 0.9;
+      const flame = new THREE.Sprite(new THREE.SpriteMaterial({
+        map: flameTex,
+        color: flameTints[i % flameTints.length],
+        transparent: true,
+        opacity: 0.5,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
+      }));
+      flame.center.set(0.5, 0.08); // anchor at the base so flames grow upward
+      flame.scale.set(w, h, 1);
+      flame.position.set((i - 3) * 2.1, 3.4 + (i % 2) * 0.3, 1.7 + (i % 3) * 0.2);
+      fireplaceGroup.add(flame);
+      fireFlames.push({ mesh: flame, w, h, phase: i * 1.37 });
+    }
+    // Glowing ember bed under the flames
+    const emberBed = new THREE.Sprite(new THREE.SpriteMaterial({
+      map: glowSpriteTex, color: 0xff5a14, transparent: true, opacity: 0.45,
+      blending: THREE.AdditiveBlending, depthWrite: false
+    }));
+    emberBed.scale.set(15, 3.2, 1);
+    emberBed.position.set(0, 3.0, 2.1);
+    fireplaceGroup.add(emberBed);
 
     const fireGlowSprite = new THREE.Sprite(
-      new THREE.SpriteMaterial({ map: glowSpriteTex, color: 0xff8822, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending })
+      new THREE.SpriteMaterial({ map: glowSpriteTex, color: 0xff8822, transparent: true, opacity: 0.45, blending: THREE.AdditiveBlending })
     );
     fireGlowSprite.scale.set(16, 11, 1);
     fireGlowSprite.position.set(0, 4.5, 2.4);
@@ -3953,24 +4040,74 @@
       trunk.position.y = totalHeight * 0.08;
       tree.add(trunk);
 
-      // 8 overlapping textured evergreen layers with serrated branch fullness
-      const layerCount = 8;
-      for (let l = 0; l < layerCount; l++) {
-        const frac = l / (layerCount - 1);
-        const r = baseRadius * (1.0 - frac * 0.78);
-        const h = (totalHeight / layerCount) * 1.95;
-        const y = totalHeight * 0.14 + frac * (totalHeight * 0.76);
-        const pineShade = l % 2 === 0 ? 0x10471f : 0x165928;
-        const coneMat = new THREE.MeshStandardMaterial({ color: pineShade, roughness: 0.78 });
-        const cone = new THREE.Mesh(new THREE.ConeGeometry(r, h, 14), coneMat);
-        cone.position.y = y;
-        cone.rotation.y = l * 0.4;
-        tree.add(cone);
+      // Dense dark inner core (so no gaps show through the branches)
+      for (let l = 0; l < 4; l++) {
+        const frac = l / 3;
+        const coreMat = new THREE.MeshStandardMaterial({ color: 0x0a3318, roughness: 0.9 });
+        const core = new THREE.Mesh(
+          new THREE.ConeGeometry(baseRadius * (0.86 - frac * 0.62), totalHeight * 0.42, 12),
+          coreMat
+        );
+        core.position.y = totalHeight * 0.2 + frac * totalHeight * 0.22 + totalHeight * 0.21;
+        tree.add(core);
       }
 
+      // Bushy silhouette: many drooping, flattened needle-fan branches radiating from the trunk in
+      // staggered tiers (one InstancedMesh per tree keeps this to a single draw call).
+      const branchGeo = new THREE.ConeGeometry(0.22, 1, 5);
+      branchGeo.rotateZ(-Math.PI / 2); // apex now points along +x
+      branchGeo.translate(0.5, 0, 0);  // base at the trunk axis, tip at x = 1
+      const tierCount = 14;
+      const branchSpecs = [];
+      for (let t = 0; t < tierCount; t++) {
+        const f = t / (tierCount - 1);
+        const perTier = Math.round(11 + 15 * (1 - f));
+        const reach = baseRadius * (1.04 - f * 0.9) + 0.5;
+        const y = totalHeight * 0.13 + f * totalHeight * 0.8;
+        for (let k = 0; k < perTier; k++) {
+          const r1 = Math.sin((t * 12.9898 + k * 78.233) * 43758.5453) * 0.5 + 0.5; // cheap deterministic jitter
+          const r2 = Math.sin((t * 39.346 + k * 11.135) * 24634.634) * 0.5 + 0.5;
+          branchSpecs.push({
+            y: y + (r2 - 0.5) * (totalHeight / tierCount) * 0.7,
+            yaw: (k / perTier) * Math.PI * 2 + t * 0.7 + r1 * 0.3,
+            droop: 0.32 + r1 * 0.3 + f * 0.1,
+            len: reach * (0.88 + r2 * 0.22),
+            thick: 1.9 + (1 - f) * 2.8 + r1 * 0.6,
+            shade: r2
+          });
+        }
+      }
+      const branches = new THREE.InstancedMesh(
+        branchGeo,
+        new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.85 }),
+        branchSpecs.length
+      );
+      const bm = new THREE.Matrix4(), bq = new THREE.Quaternion(), bp = new THREE.Vector3(), bs = new THREE.Vector3();
+      const eulerTmp = new THREE.Euler(), bc = new THREE.Color();
+      branchSpecs.forEach((s, idx) => {
+        eulerTmp.set(0, s.yaw, -s.droop, 'YZX');
+        bq.setFromEuler(eulerTmp);
+        bp.set(0, s.y, 0);
+        bs.set(s.len, s.thick * 0.62, s.thick);
+        bm.compose(bp, bq, bs);
+        branches.setMatrixAt(idx, bm);
+        bc.setHSL(0.355 + s.shade * 0.03, 0.62, 0.13 + s.shade * 0.075);
+        branches.setColorAt(idx, bc);
+      });
+      branches.instanceMatrix.needsUpdate = true;
+      if (branches.instanceColor) branches.instanceColor.needsUpdate = true;
+      tree.add(branches);
+
       // 115 Warm Glowing Fairy Light Sprites + Glossy Red/Gold/Green Ornaments spiraling up the tree
-      const ornColors = [0xd91824, 0xffcc33, 0x24a848, 0xff6622];
-      const totalItems = 115;
+      const ornColors = [0xd91824, 0xffcc33, 0x24a848, 0xff6622, 0xe8e8f0, 0x2a5fd0];
+      const totalItems = 150;
+      const baubleCount = Math.ceil(totalItems / 3);
+      const baubles = new THREE.InstancedMesh(
+        new THREE.SphereGeometry(1, 12, 10),
+        new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.2, metalness: 0.45 }),
+        baubleCount
+      );
+      let baubleIdx = 0;
       for (let i = 0; i < totalItems; i++) {
         const hNorm = Math.pow(i / totalItems, 0.86); // denser at bottom, tapering to top
         const y = totalHeight * 0.11 + hNorm * (totalHeight * 0.82);
@@ -3979,16 +4116,17 @@
         const ox = Math.cos(angle) * surfaceR;
         const oz = Math.sin(angle) * surfaceR;
 
-        if (i % 4 === 0) {
-          // Glossy metallic Christmas ornament bauble
-          const oMat = new THREE.MeshStandardMaterial({
-            color: ornColors[i % ornColors.length],
-            roughness: 0.15,
-            metalness: 0.82
-          });
-          const bauble = new THREE.Mesh(new THREE.SphereGeometry(baseRadius * 0.072, 8, 8), oMat);
-          bauble.position.set(ox, y, oz);
-          tree.add(bauble);
+        if (i % 3 === 0 && baubleIdx < baubleCount) {
+          // Glossy Christmas ornament bauble (instanced; per-instance colour)
+          const br = baseRadius * (0.075 + (i % 4) * 0.012) * (1 - hNorm * 0.35);
+          const bmat = new THREE.Matrix4().compose(
+            new THREE.Vector3(ox, y, oz),
+            new THREE.Quaternion(),
+            new THREE.Vector3(br, br, br)
+          );
+          baubles.setMatrixAt(baubleIdx, bmat);
+          baubles.setColorAt(baubleIdx, new THREE.Color(ornColors[(i * 7 + (i >> 2)) % ornColors.length]));
+          baubleIdx++;
         } else {
           // Warm glowing fairy light bokeh sprite
           const isWarmGold = i % 5 !== 0;
@@ -4008,6 +4146,11 @@
           treeFairyLights.push({ mesh: sp, baseScale, phase: i * 0.55 });
         }
       }
+
+      baubles.count = baubleIdx;
+      baubles.instanceMatrix.needsUpdate = true;
+      if (baubles.instanceColor) baubles.instanceColor.needsUpdate = true;
+      tree.add(baubles);
 
       // Glowing 5-Point Golden Star Topper + Halo
       const topStar = createStarMesh(baseRadius * 0.25, 0xffd858);
@@ -5715,9 +5858,9 @@
 
         for (let i = 0; i < fireFlames.length; i++) {
           const fl = fireFlames[i];
-          const sy = 0.85 + Math.sin(t * 11.0 + fl.phase) * 0.28 + Math.cos(t * 17.0 + fl.phase) * 0.14;
-          fl.mesh.scale.set(0.92 + Math.sin(t * 7 + fl.phase) * 0.12, sy, 1.0);
-          fl.mesh.position.y = fl.baseY + (sy - 1.0) * 1.4;
+          const sy = 0.88 + Math.sin(t * 9.0 + fl.phase) * 0.2 + Math.cos(t * 15.0 + fl.phase * 1.7) * 0.1;
+          const sx = 0.94 + Math.sin(t * 6.0 + fl.phase) * 0.1;
+          fl.mesh.scale.set(fl.w * sx, fl.h * sy, 1.0);
         }
         for (let s = 0; s < snowSystems.length; s++) {
           const sys = snowSystems[s];
