@@ -1052,6 +1052,10 @@
             <button class="btn-sm active" id="toggle-theme-btn">Christmas</button>
           </div>
           <div class="field-row">
+            <label>Glow &amp; Bloom (Christmas)</label>
+            <button class="btn-sm active" id="toggle-glow-btn" title="Soft glow on lights, fire and ornaments. Turn off on slower graphics cards.">ON</button>
+          </div>
+          <div class="field-row">
             <label>Camera Preset</label>
             <button class="btn-sm" id="reset-view-btn">Reset Full 88-Key View</button>
           </div>
@@ -1372,6 +1376,7 @@
       showLabels: true,
       showLyrics: true,
       theme: 'christmas',
+      glow: true,
       octave: 4,
       scaleRoot: 0,
       scaleMode: 'none',
@@ -3663,7 +3668,7 @@
     });
 
     // Warm shelf accent light illuminating the bookcase
-    const bookcaseLight = new THREE.PointLight(0xffb866, 1.5, 42);
+    const bookcaseLight = new THREE.PointLight(0xffb866, 2.6, 62);
     bookcaseLight.position.set(-38, ROOM_FLOOR_Y + 18, ROOM_Z + 22);
     christmasRoomGroup.add(bookcaseLight);
 
@@ -3733,7 +3738,7 @@
     fireGlowSprite.position.set(0, 4.5, 2.4);
     fireplaceGroup.add(fireGlowSprite);
 
-    const fireLight = new THREE.PointLight(0xff7b29, 3.8, 95);
+    const fireLight = new THREE.PointLight(0xff7b29, 6.5, 140);
     fireLight.position.set(0, 7.0, 6.5);
     fireplaceGroup.add(fireLight);
 
@@ -3989,7 +3994,7 @@
         tree.add(gBox);
       });
 
-      const treeWarmLight = new THREE.PointLight(0xffc966, 2.0, 48);
+      const treeWarmLight = new THREE.PointLight(0xffc966, 3.2, 70);
       treeWarmLight.position.set(0, totalHeight * 0.5, baseRadius * 0.7);
       tree.add(treeWarmLight);
 
@@ -5208,6 +5213,10 @@
       scene.background.setHex(isXmas ? 0x160c09 : 0x0e0b09);
       scene.fog.color.setHex(isXmas ? 0x160c09 : 0x0e0b09);
       scene.fog.density = isXmas ? 0.0012 : 0.0028;
+      // Christmas: dimmer fill light so the fire, tree lights and candles glow against a cozy dark room
+      ambientLight.intensity = isXmas ? 0.48 : 0.65;
+      hemiLight.intensity = isXmas ? 0.48 : 0.65;
+      rimLight.intensity = isXmas ? 0.8 : 1.1;
       resizeRenderer(); // the canvas is full-bleed in Christmas mode, inset in Classic Studio
     }
 
@@ -5386,6 +5395,144 @@
       ensureAudioStarted();
     }
 
+    // -------------------------------------------------------------------------
+    // 13D. GLOW / BLOOM POST-PROCESSING (self-contained, no external addons)
+    //      Scene -> HDR target -> bright-pass -> multi-level gaussian blur -> additive
+    //      composite with tone mapping. Christmas theme only; toggle in View menu.
+    // -------------------------------------------------------------------------
+    const BLOOM_LEVELS = 4;
+    var bloom = { // var: applyVisualTheme() may call resizeRenderer() before this line runs
+      ok: true,
+      sceneRT: null, brightRT: null, blurH: [], blurV: [],
+      strength: 0.7, threshold: 0.85, knee: 0.7,
+      weights: [1.0, 0.9, 0.75, 0.55]
+    };
+    const fsScene = new THREE.Scene();
+    const fsCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+    const fsQuad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2));
+    fsQuad.frustumCulled = false;
+    fsScene.add(fsQuad);
+
+    const FS_VERT = `varying vec2 vUv; void main() { vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }`;
+    const brightMat = new THREE.ShaderMaterial({
+      uniforms: { tDiffuse: { value: null }, threshold: { value: 0.85 }, knee: { value: 0.7 } },
+      vertexShader: FS_VERT,
+      fragmentShader: `
+        varying vec2 vUv; uniform sampler2D tDiffuse; uniform float threshold; uniform float knee;
+        void main() {
+          vec3 c = texture2D(tDiffuse, vUv).rgb;
+          float l = max(c.r, max(c.g, c.b));
+          float k = smoothstep(threshold, threshold + knee, l);
+          gl_FragColor = vec4(c * k, 1.0);
+        }`,
+      depthTest: false, depthWrite: false
+    });
+    const blurMat = new THREE.ShaderMaterial({
+      uniforms: { tDiffuse: { value: null }, dir: { value: new THREE.Vector2(1, 0) } },
+      vertexShader: FS_VERT,
+      fragmentShader: `
+        varying vec2 vUv; uniform sampler2D tDiffuse; uniform vec2 dir;
+        void main() {
+          vec3 s = texture2D(tDiffuse, vUv).rgb * 0.227027;
+          s += (texture2D(tDiffuse, vUv + dir * 1.3846).rgb + texture2D(tDiffuse, vUv - dir * 1.3846).rgb) * 0.3162162;
+          s += (texture2D(tDiffuse, vUv + dir * 3.2308).rgb + texture2D(tDiffuse, vUv - dir * 3.2308).rgb) * 0.0702703;
+          gl_FragColor = vec4(s, 1.0);
+        }`,
+      depthTest: false, depthWrite: false
+    });
+    const compositeMat = new THREE.ShaderMaterial({
+      uniforms: {
+        tScene: { value: null },
+        tB0: { value: null }, tB1: { value: null }, tB2: { value: null }, tB3: { value: null },
+        strength: { value: 0.85 },
+        weights: { value: new THREE.Vector4(1, 0.9, 0.75, 0.55) }
+      },
+      vertexShader: FS_VERT,
+      fragmentShader: `
+        varying vec2 vUv;
+        uniform sampler2D tScene, tB0, tB1, tB2, tB3; uniform float strength; uniform vec4 weights;
+        void main() {
+          vec3 c = texture2D(tScene, vUv).rgb;
+          vec3 b = texture2D(tB0, vUv).rgb * weights.x + texture2D(tB1, vUv).rgb * weights.y
+                 + texture2D(tB2, vUv).rgb * weights.z + texture2D(tB3, vUv).rgb * weights.w;
+          gl_FragColor = vec4(c + b * strength, 1.0);
+          #include <tonemapping_fragment>
+          #include <colorspace_fragment>
+        }`,
+      depthTest: false, depthWrite: false
+    });
+
+    function disposeBloomTargets() {
+      [bloom.sceneRT, bloom.brightRT, ...bloom.blurH, ...bloom.blurV].forEach(t => t && t.dispose());
+      bloom.sceneRT = bloom.brightRT = null; bloom.blurH = []; bloom.blurV = [];
+    }
+
+    function allocBloomTargets() {
+      disposeBloomTargets();
+      const size = renderer.getDrawingBufferSize(new THREE.Vector2());
+      const w = Math.max(2, Math.floor(size.x)), h = Math.max(2, Math.floor(size.y));
+      const opts = { type: THREE.HalfFloatType, depthBuffer: false, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter };
+      bloom.sceneRT = new THREE.WebGLRenderTarget(w, h, { ...opts, depthBuffer: true, samples: 4 });
+      bloom.brightRT = new THREE.WebGLRenderTarget(Math.max(1, w >> 1), Math.max(1, h >> 1), opts);
+      for (let i = 0; i < BLOOM_LEVELS; i++) {
+        const lw = Math.max(1, w >> (i + 1)), lh = Math.max(1, h >> (i + 1));
+        bloom.blurH.push(new THREE.WebGLRenderTarget(lw, lh, opts));
+        bloom.blurV.push(new THREE.WebGLRenderTarget(lw, lh, opts));
+      }
+    }
+
+    function runPass(material, target) {
+      fsQuad.material = material;
+      renderer.setRenderTarget(target);
+      renderer.render(fsScene, fsCamera);
+    }
+
+    function glowActive() {
+      return bloom.ok && userSettings.glow !== false && activeTheme === 'christmas';
+    }
+
+    function renderFrame() {
+      if (!glowActive()) {
+        renderer.setRenderTarget(null);
+        renderer.render(scene, camera);
+        return;
+      }
+      try {
+        if (!bloom.sceneRT) allocBloomTargets();
+        renderer.setRenderTarget(bloom.sceneRT);
+        renderer.render(scene, camera);
+
+        brightMat.uniforms.tDiffuse.value = bloom.sceneRT.texture;
+        brightMat.uniforms.threshold.value = bloom.threshold;
+        brightMat.uniforms.knee.value = bloom.knee;
+        runPass(brightMat, bloom.brightRT);
+
+        let input = bloom.brightRT;
+        for (let i = 0; i < BLOOM_LEVELS; i++) {
+          blurMat.uniforms.tDiffuse.value = input.texture;
+          blurMat.uniforms.dir.value.set(1 / input.width, 0);
+          runPass(blurMat, bloom.blurH[i]);
+          blurMat.uniforms.tDiffuse.value = bloom.blurH[i].texture;
+          blurMat.uniforms.dir.value.set(0, 1 / bloom.blurH[i].height);
+          runPass(blurMat, bloom.blurV[i]);
+          input = bloom.blurV[i];
+        }
+
+        const u = compositeMat.uniforms;
+        u.tScene.value = bloom.sceneRT.texture;
+        u.tB0.value = bloom.blurV[0].texture; u.tB1.value = bloom.blurV[1].texture;
+        u.tB2.value = bloom.blurV[2].texture; u.tB3.value = bloom.blurV[3].texture;
+        u.strength.value = bloom.strength;
+        runPass(compositeMat, null);
+      } catch (err) {
+        console.warn('Glow post-processing unavailable, falling back to plain rendering:', err);
+        bloom.ok = false;
+        disposeBloomTargets();
+        renderer.setRenderTarget(null);
+        renderer.render(scene, camera);
+      }
+    }
+
     function resizeRenderer() {
       const w = container.clientWidth;
       const h = container.clientHeight;
@@ -5393,8 +5540,22 @@
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
       renderer.setSize(w, h);
+      if (bloom && bloom.sceneRT) allocBloomTargets();
       updateCameraTransform(); // Christmas framing depends on the aspect ratio
     }
+
+    const toggleGlowBtn = document.getElementById('toggle-glow-btn');
+    function refreshGlowButton() {
+      const on = userSettings.glow !== false;
+      toggleGlowBtn.textContent = on ? 'ON' : 'OFF';
+      toggleGlowBtn.classList.toggle('active', on);
+    }
+    toggleGlowBtn.addEventListener('click', () => {
+      userSettings.glow = userSettings.glow === false;
+      saveSettings();
+      refreshGlowButton();
+    });
+    refreshGlowButton();
     window.addEventListener('resize', resizeRenderer);
 
     // =========================================================================
@@ -5512,7 +5673,7 @@
         }
       }
 
-      renderer.render(scene, camera);
+      renderFrame();
     }
 
     requestAnimationFrame(animate);
